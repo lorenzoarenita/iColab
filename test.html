@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prototipo Colaboración Documental con Editor</title>
+
+    <!-- Google Font: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+    <style>
+        :root {
+            /* Colores */
+            --main-bg-start: #cce3f9;
+            --main-bg-end: #b6d7f7;
+            --content-bg: #e9f1fa;
+            --sidebar-bg: #1a73e8;
+            --primary-blue: #1a73e8;
+            --text-dark: #2a2a2e;
+            --text-light: #ffffff;
+            --icon-grey: #9aa0a6;
+            --file-icon-bg: #ffffff; /* Fondo del contenedor del icono */
+            --meta-text-color: #6c757d;
+            --editor-bg: #ffffff;
+            --editor-header-bg: #f8f9fa;
+            --editor-border: #dee2e6;
+
+            /* Tamaños y Radios */
+            --border-radius-main: 16px;
+            --border-radius-inner: 10px;
+            --sidebar-width: 260px;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--main-bg-start), var(--main-bg-end));
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            font-size: 14px;
+            color: var(--text-dark);
+            transition: filter 0.3s ease; /* Transición para el desenfoque */
+        }
+
+        /* Estilo para desenfocar el fondo cuando el editor está abierto */
+        body.editor-open > .app-container {
+             filter: blur(3px);
+             pointer-events: none; /* Evitar interacción con el fondo */
+        }
+
+        .app-container {
+            display: flex;
+            width: 100%;
+            max-width: 1100px;
+            min-height: 680px;
+            background-color: var(--content-bg);
+            border-radius: var(--border-radius-main);
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            transition: opacity 0.3s ease;
+        }
+
+        /* Área Principal */
+        .main-content {
+            flex-grow: 1;
+            padding: 35px 45px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .main-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 45px;
+        }
+
+        .main-header h1 {
+            font-size: 2.1rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .btn-upload {
+            background-color: var(--primary-blue);
+            border-color: var(--primary-blue);
+            color: var(--text-light);
+            border-radius: 50px;
+            padding: 9px 28px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: background-color 0.2s ease, border-color 0.2s ease;
+        }
+        .btn-upload:hover, .btn-upload:focus {
+             background-color: #1565c0; border-color: #1565c0; color: var(--text-light); box-shadow: none;
+        }
+
+        /* Lista de Archivos */
+        .file-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); /* Un poco más de ancho mínimo */
+            gap: 30px; /* Reducir gap ligeramente */
+            padding-top: 10px;
+            width: 100%;
+        }
+
+        .file-item {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            padding: 10px 5px 25px 5px; /* Ajustar padding */
+            cursor: default; /* Cursor normal por defecto */
+            border-radius: var(--border-radius-inner);
+            transition: background-color 0.2s ease;
+            background-color: transparent; /* Asegurar fondo transparente inicial */
+        }
+        .file-item.editable {
+             cursor: pointer; /* Cursor de puntero solo para editables */
+        }
+
+        .file-item:hover {
+             background-color: rgba(0, 0, 0, 0.04);
+        }
+
+        /* Contenedor del Icono de Archivo */
+        .file-icon-container {
+            width: 75px;
+            height: 95px;
+            background-color: var(--file-icon-bg);
+            border-radius: var(--border-radius-inner);
+            margin-bottom: 10px;
+            position: relative; /* Para la esquina doblada */
+            overflow: hidden; /* Para la esquina doblada */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.8rem; /* Tamaño del icono de Bootstrap */
+            color: var(--primary-blue); /* Color base para iconos */
+        }
+
+        /* Colores específicos por tipo de archivo */
+        .file-item[data-filetype="pdf"] .file-icon-container { color: #dc3545; } /* Rojo PDF */
+        .file-item[data-filetype="zip"] .file-icon-container { color: #6c757d; } /* Gris ZIP */
+        .file-item[data-filetype="docx"] .file-icon-container { color: #0d6efd; } /* Azul DOCX */
+        .file-item[data-filetype="pptx"] .file-icon-container { color: #fd7e14; } /* Naranja PPTX */
+        .file-item[data-filetype="xlsx"] .file-icon-container { color: #198754; } /* Verde XLSX */
+
+        /* Esquina doblada (dog-ear) aplicada al contenedor */
+        .file-icon-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            border-width: 0 16px 16px 0;
+            border-style: solid;
+            /* Color base de la esquina */
+            border-color: transparent var(--content-bg) transparent transparent;
+             transition: border-color 0.2s ease;
+        }
+        /* Sombra/línea sutil bajo la esquina doblada */
+        .file-icon-container::after {
+             content: '';
+             position: absolute;
+             top: 0px;
+             right: 15px;
+             width: 1px;
+             height: 16px;
+             background-color: rgba(0,0,0,0.06);
+             transform: rotate(45deg);
+             transform-origin: top right;
+         }
+        /* Cambiar color de esquina en hover */
+        .file-item:hover .file-icon-container::before {
+            border-color: transparent rgba(0, 0, 0, 0.04) transparent transparent;
+        }
+
+        .file-item p {
+            font-size: 0.8rem;
+            margin-top: 0;
+            color: var(--text-dark);
+            font-weight: 500;
+            margin-bottom: 4px;
+            word-break: break-word; /* Mejor que break-all */
+            padding: 0 5px;
+            line-height: 1.3; /* Mejorar espaciado */
+            max-height: 2.6em; /* Limitar a 2 líneas aprox */
+            overflow: hidden; /* Ocultar exceso */
+            text-overflow: ellipsis; /* Añadir puntos suspensivos */
+        }
+
+        .file-meta {
+            font-size: 0.7rem;
+            color: var(--meta-text-color);
+            line-height: 1.3;
+            display: block;
+            margin-top: 2px;
+        }
+
+        /* Icono de edición (hint para futura edición online) */
+        .file-edit-hint {
+            position: absolute;
+            bottom: 5px; /* Posicionar abajo */
+            right: 10px; /* A la derecha */
+            font-size: 1rem;
+            color: var(--primary-blue);
+            opacity: 0; /* Oculto por defecto */
+            visibility: hidden;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+        }
+        .file-item.editable:hover .file-edit-hint {
+            opacity: 1; /* Mostrar en hover solo si es editable */
+            visibility: visible;
+        }
+        .file-item[data-filetype="pdf"] .file-edit-hint::before { content: "\F341"; } /* Icono Ojo (Bootstrap Icons Unicode) */
+        .file-item[data-filetype="zip"] .file-edit-hint { display: none; } /* Ocultar para ZIP */
+
+        /* ----- Barra Lateral ----- (sin cambios significativos) */
+        .sidebar {
+            flex-basis: var(--sidebar-width); flex-shrink: 0; background-color: var(--sidebar-bg);
+            color: var(--text-light); padding: 35px 20px 35px 30px; display: flex; flex-direction: column;
+        }
+        .user-info { display: flex; align-items: center; margin-bottom: 35px; padding-left: 5px; }
+        .user-info .bi-person-circle { font-size: 2rem; margin-right: 15px; color: rgba(255, 255, 255, 0.95); }
+        .user-info span { font-size: 1.05rem; font-weight: 500; }
+        .sidebar .nav { flex-grow: 1; }
+        .sidebar .nav-link { color: var(--text-light); display: flex; align-items: flex-start; padding: 12px 15px;
+            border-radius: var(--border-radius-inner); margin-bottom: 10px; font-size: 0.95rem;
+            transition: background-color 0.2s ease; line-height: 1.4; }
+        .sidebar .nav-link:hover { background-color: rgba(255, 255, 255, 0.1); color: var(--text-light); }
+        .sidebar .nav-link.active { background-color: rgba(0, 0, 0, 0.15); font-weight: 500; }
+        .sidebar .nav-link i { font-size: 1.4rem; margin-right: 20px; width: 25px; text-align: center;
+            color: rgba(255, 255, 255, 0.95); margin-top: 2px; }
+
+        /* ----- Pseudo Editor ----- */
+        #pseudo-editor-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6); /* Fondo oscuro semi-transparente */
+            display: none; /* Oculto por defecto */
+            align-items: center;
+            justify-content: center;
+            z-index: 1050; /* Encima de otros elementos */
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        #pseudo-editor-overlay.visible {
+            display: flex;
+            opacity: 1;
+        }
+
+        .editor-container {
+            background-color: var(--editor-bg);
+            border-radius: var(--border-radius-main);
+            width: 90%;
+            max-width: 900px;
+            height: 85%;
+            max-height: 700px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            overflow: hidden; /* Para contener bordes redondeados */
+        }
+
+        .editor-header {
+            background-color: var(--editor-header-bg);
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--editor-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0; /* Evitar que se encoja */
+        }
+
+        .editor-header h5 {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 600;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        #editor-close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            line-height: 1;
+            color: var(--text-dark);
+            opacity: 0.7;
+            cursor: pointer;
+        }
+        #editor-close-btn:hover { opacity: 1; }
+
+        .editor-toolbar {
+            padding: 8px 15px;
+            border-bottom: 1px solid var(--editor-border);
+            background-color: #f8f9fa; /* Mismo fondo que header */
+            flex-shrink: 0;
+        }
+        .editor-toolbar button {
+            background: none;
+            border: none;
+            font-size: 1.1rem;
+            padding: 5px 8px;
+            margin-right: 5px;
+            color: var(--text-dark);
+            opacity: 0.8;
+            cursor: pointer;
+        }
+        .editor-toolbar button:hover { background-color: rgba(0,0,0,0.1); border-radius: 4px; opacity: 1;}
+
+        .editor-content {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto; /* Scroll si el contenido es largo */
+            font-size: 1rem;
+            line-height: 1.6;
+            color: #333;
+            background-color: #fff; /* Fondo blanco para el área de texto */
+        }
+        .editor-content p {
+            margin-bottom: 1em;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- Área Principal -->
+        <main class="main-content">
+            <header class="main-header">
+                <h1>Informe Trimestral Q3</h1>
+                <button class="btn btn-upload">
+                    <i class="bi bi-cloud-arrow-up-fill me-2"></i>
+                    Subir documento
+                </button>
+            </header>
+
+            <section class="file-list" id="file-list-container">
+                <!-- Archivo Excel (no editable en este ejemplo) -->
+                <div class="file-item" data-filename="presupuesto_v3.xlsx" data-filetype="xlsx">
+                    <div class="file-icon-container">
+                        <i class="bi bi-file-earmark-excel-fill"></i>
+                    </div>
+                    <p>presupuesto_v3.xlsx</p>
+                    <small class="file-meta">Subido por: Carlos R.</small>
+                    <!-- No editable hint -->
+                </div>
+
+                <!-- Archivo Word (editable) -->
+                <div class="file-item editable" data-filename="borrador_informe.docx" data-filetype="docx">
+                     <div class="file-icon-container">
+                         <i class="bi bi-file-earmark-word-fill"></i>
+                     </div>
+                    <p>borrador_informe.docx</p>
+                    <small class="file-meta">Subido por: Ana G. (Tú)</small>
+                    <i class="bi bi-pencil-fill file-edit-hint" title="Editar documento"></i>
+                </div>
+
+                 <!-- Archivo Powerpoint (editable) -->
+                 <div class="file-item editable" data-filename="presentacion_cliente_final_revisada.pptx" data-filetype="pptx">
+                     <div class="file-icon-container">
+                          <i class="bi bi-file-earmark-slides-fill"></i>
+                     </div>
+                    <p>presentacion_cliente_final_revisada.pptx</p>
+                     <small class="file-meta">Modificado: Ayer</small>
+                     <i class="bi bi-pencil-fill file-edit-hint" title="Editar documento"></i>
+                </div>
+
+                 <!-- Archivo Zip (no editable) -->
+                 <div class="file-item" data-filename="imagenes_logo_final_alta_resolucion.zip" data-filetype="zip">
+                     <div class="file-icon-container">
+                          <i class="bi bi-file-earmark-zip-fill"></i>
+                     </div>
+                    <p>imagenes_logo_final_alta_resolucion.zip</p>
+                     <small class="file-meta">Subido por: Laura M.</small>
+                     <!-- Icono de descarga/ver podría ir aquí en lugar de edit hint -->
+                </div>
+
+                 <!-- Archivo PDF (no editable, pero "visible") -->
+                 <div class="file-item" data-filename="revision_legal_contrato_firmado.pdf" data-filetype="pdf">
+                     <div class="file-icon-container">
+                          <i class="bi bi-file-earmark-pdf-fill"></i>
+                     </div>
+                    <p>revision_legal_contrato_firmado.pdf</p>
+                     <small class="file-meta">Subido por: Javier S.</small>
+                     <i class="bi bi-eye-fill file-edit-hint" title="Ver documento"></i>
+                </div>
+
+                <!-- Archivo de Texto genérico (no editable en este ejemplo) -->
+                <div class="file-item" data-filename="notas_reunion_15_may.txt" data-filetype="txt">
+                     <div class="file-icon-container">
+                          <i class="bi bi-file-earmark-text-fill"></i>
+                     </div>
+                    <p>notas_reunion_15_may.txt</p>
+                     <small class="file-meta">Subido por: Ana G. (Tú)</small>
+                     <!-- No editable hint -->
+                </div>
+
+            </section>
+        </main>
+
+        <!-- Barra Lateral -->
+        <aside class="sidebar">
+             <div class="user-info">
+                <i class="bi bi-person-circle"></i>
+                <span>Ana García</span>
+            </div>
+             <ul class="nav flex-column">
+                <li class="nav-item"> <a class="nav-link active" href="#"> <i class="bi bi-house-door-fill"></i> <span>Página<br>principal</span> </a> </li>
+                <li class="nav-item"> <a class="nav-link" href="#"> <i class="bi bi-file-earmark-text-fill"></i> <span>Mis proyectos</span> </a> </li>
+                <li class="nav-item"> <a class="nav-link" href="#"> <i class="bi bi-gear-fill"></i> <span>Configuración</span> </a> </li>
+            </ul>
+        </aside>
+    </div>
+
+    <!-- Pseudo Editor (Oculto por defecto) -->
+    <div id="pseudo-editor-overlay">
+        <div class="editor-container">
+            <div class="editor-header">
+                <h5 id="editor-filename">Nombre del Archivo</h5>
+                <button id="editor-close-btn" title="Cerrar editor">×</button>
+            </div>
+            <div class="editor-toolbar">
+                <button title="Guardar (simulado)"><i class="bi bi-save-fill"></i></button>
+                <button title="Negrita"><i class="bi bi-type-bold"></i></button>
+                <button title="Cursiva"><i class="bi bi-type-italic"></i></button>
+                <button title="Subrayado"><i class="bi bi-type-underline"></i></button>
+                <button title="Lista"><i class="bi bi-list-ul"></i></button>
+                <button title="Deshacer"><i class="bi bi-arrow-counterclockwise"></i></button>
+                <button title="Rehacer"><i class="bi bi-arrow-clockwise"></i></button>
+            </div>
+            <div class="editor-content" id="editor-body">
+                <p>Este es un <strong>prototipo de editor</strong>.</p>
+                <p>Al hacer clic en un archivo compatible (como .docx o .pptx), se muestra esta ventana modal simulando una interfaz de edición en línea.</p>
+                <p>El contenido real del archivo no se carga ni se modifica. Esto es solo una representación visual.</p>
+                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+                 <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+    <!-- JavaScript Personalizado -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const fileListContainer = document.getElementById('file-list-container');
+            const editorOverlay = document.getElementById('pseudo-editor-overlay');
+            const editorFilename = document.getElementById('editor-filename');
+            const editorCloseBtn = document.getElementById('editor-close-btn');
+            const editorBody = document.getElementById('editor-body'); // Para posible contenido futuro
+
+            const editableTypes = ['docx', 'pptx']; // Tipos de archivo que activan el editor
+
+            if (fileListContainer) {
+                fileListContainer.addEventListener('click', (event) => {
+                    // Encontrar el elemento .file-item más cercano al clic
+                    const fileItem = event.target.closest('.file-item.editable');
+
+                    if (fileItem) {
+                        const fileType = fileItem.dataset.filetype;
+                        const filename = fileItem.dataset.filename;
+
+                        // Comprobar si el tipo de archivo es editable
+                        if (editableTypes.includes(fileType)) {
+                            // Actualizar el nombre del archivo en el editor
+                            editorFilename.textContent = filename || 'Documento';
+
+                            // Mostrar el overlay del editor
+                            editorOverlay.classList.add('visible');
+                            document.body.classList.add('editor-open'); // Añadir clase al body
+                        }
+                        // Podrías añadir lógica aquí para otros tipos, como abrir PDF en nueva pestaña
+                         else if (fileType === 'pdf') {
+                            // Simular apertura (o no hacer nada en el prototipo)
+                             console.log(`Simulando vista de PDF: ${filename}`);
+                         }
+                    }
+                });
+            }
+
+            // Función para cerrar el editor
+            const closeEditor = () => {
+                editorOverlay.classList.remove('visible');
+                document.body.classList.remove('editor-open'); // Quitar clase del body
+            };
+
+            // Cerrar al hacer clic en el botón de cerrar
+            if (editorCloseBtn) {
+                editorCloseBtn.addEventListener('click', closeEditor);
+            }
+
+            // Cerrar al hacer clic fuera del contenido del editor (en el overlay oscuro)
+            if (editorOverlay) {
+                editorOverlay.addEventListener('click', (event) => {
+                    // Si el clic fue directamente en el overlay (no en sus hijos)
+                    if (event.target === editorOverlay) {
+                        closeEditor();
+                    }
+                });
+            }
+
+             // Cerrar al presionar la tecla Escape
+             document.addEventListener('keydown', (event) => {
+                 if (event.key === 'Escape' && editorOverlay.classList.contains('visible')) {
+                     closeEditor();
+                 }
+             });
+        });
+    </script>
+
+</body>
+</html>

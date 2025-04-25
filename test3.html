@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prototipo Comunicación de Equipo</title>
+
+    <!-- Google Font: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+    <style>
+        :root {
+            /* Colores */
+            --main-bg-start: #e8f0fe; /* Lighter blue start */
+            --main-bg-end: #d6e2f7; /* Lighter blue end */
+            --content-bg: #f8f9fa;  /* Lighter content background */
+            --sidebar-bg: #4285f4; /* Google Blue */
+            --primary-blue: #4285f4;
+            --text-dark: #202124; /* Google Dark Grey */
+            --text-light: #ffffff;
+            --icon-grey: #5f6368; /* Google Medium Grey */
+            --item-bg-hover: #e8eaed; /* Google Light Grey for hover */
+            --meta-text-color: #5f6368;
+            --comment-bg: #ffffff;
+            --comment-header-bg: #f1f3f4; /* Slightly darker grey for header */
+            --comment-border: #dadce0; /* Google Border Grey */
+            --unread-indicator-bg: #d93025; /* Google Red */
+
+            /* Tamaños y Radios */
+            --border-radius-main: 12px; /* Slightly smaller radius */
+            --border-radius-inner: 8px;
+            --sidebar-width: 260px;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--main-bg-start), var(--main-bg-end));
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            font-size: 14px;
+            color: var(--text-dark);
+            transition: filter 0.3s ease; /* Transición para el desenfoque */
+        }
+
+        /* Estilo para desenfocar el fondo cuando el panel de comunicación está abierto */
+        body.communication-open > .app-container {
+             filter: blur(3px);
+             pointer-events: none; /* Evitar interacción con el fondo */
+        }
+
+        .app-container {
+            display: flex;
+            width: 100%;
+            max-width: 1100px;
+            min-height: 680px;
+            background-color: var(--content-bg);
+            border-radius: var(--border-radius-main);
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            transition: opacity 0.3s ease;
+        }
+
+        /* Área Principal */
+        .main-content {
+            flex-grow: 1;
+            padding: 30px 40px; /* Slightly reduced padding */
+            display: flex;
+            flex-direction: column;
+        }
+
+        .main-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 35px; /* Reduced margin */
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--comment-border);
+        }
+
+        .main-header h1 {
+            font-size: 1.8rem; /* Slightly smaller title */
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .btn-new-topic { /* Renamed button */
+            background-color: var(--primary-blue);
+            border-color: var(--primary-blue);
+            color: var(--text-light);
+            border-radius: 50px;
+            padding: 8px 25px; /* Adjusted padding */
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: background-color 0.2s ease, border-color 0.2s ease;
+        }
+        .btn-new-topic:hover, .btn-new-topic:focus {
+             background-color: #3367d6; /* Darker Google blue */
+             border-color: #3367d6;
+             color: var(--text-light);
+             box-shadow: none;
+        }
+
+        /* Lista de Discusiones/Tareas */
+        .discussion-list {
+            flex-grow: 1; /* Take remaining space */
+            overflow-y: auto; /* Allow scrolling if list is long */
+            margin: 0 -15px; /* Counteract padding on items */
+            padding: 0 10px;
+        }
+
+        .discussion-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-radius: var(--border-radius-inner);
+            margin-bottom: 12px; /* Space between items */
+            cursor: pointer;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease;
+            position: relative; /* For unread indicator */
+            background-color: #fff; /* White background for items */
+            border: 1px solid var(--comment-border);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .discussion-item:hover {
+             background-color: var(--item-bg-hover);
+             box-shadow: 0 2px 5px rgba(0,0,0,0.06);
+        }
+
+        .item-icon {
+            font-size: 1.8rem;
+            color: var(--primary-blue);
+            margin-right: 18px;
+            flex-shrink: 0;
+            width: 35px;
+            text-align: center;
+        }
+        .discussion-item[data-item-type="document"] .item-icon { color: #0d6efd; } /* Blue for docs */
+        .discussion-item[data-item-type="task"] .item-icon { color: #198754; } /* Green for tasks */
+        .discussion-item[data-item-type="report"] .item-icon { color: #fd7e14; } /* Orange for reports */
+
+
+        .item-content {
+            flex-grow: 1;
+            min-width: 0; /* Prevents text overflow issues */
+        }
+
+        .item-title {
+            font-size: 0.95rem;
+            font-weight: 500;
+            margin-bottom: 3px;
+            color: var(--text-dark);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .item-meta {
+            font-size: 0.75rem;
+            color: var(--meta-text-color);
+            line-height: 1.3;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Indicador de mensaje no leído */
+        .unread-indicator {
+            width: 10px;
+            height: 10px;
+            background-color: var(--unread-indicator-bg);
+            border-radius: 50%;
+            position: absolute;
+            top: 12px; /* Position near top right */
+            right: 12px;
+            display: none; /* Hidden by default */
+            box-shadow: 0 0 0 2px var(--content-bg); /* Ring effect */
+        }
+        .discussion-item[data-unread="true"] .unread-indicator {
+            display: block; /* Show when data attribute is true */
+        }
+        .discussion-item.new-message-highlight { /* For subtle notification effect */
+             animation: pulse-bg 1.5s ease-out;
+        }
+
+        @keyframes pulse-bg {
+            0% { background-color: #fff; }
+            30% { background-color: #e8f0fe; } /* Light blue pulse */
+            100% { background-color: #fff; }
+        }
+
+
+        /* ----- Barra Lateral ----- (Mostly unchanged, added notification badge possibility) */
+        .sidebar {
+            flex-basis: var(--sidebar-width); flex-shrink: 0; background-color: var(--sidebar-bg);
+            color: var(--text-light); padding: 35px 20px 35px 30px; display: flex; flex-direction: column;
+        }
+        .user-info { display: flex; align-items: center; margin-bottom: 35px; padding-left: 5px; }
+        .user-info .bi-person-circle { font-size: 2rem; margin-right: 15px; color: rgba(255, 255, 255, 0.95); }
+        .user-info span { font-size: 1.05rem; font-weight: 500; }
+        .sidebar .nav { flex-grow: 1; }
+        .sidebar .nav-link { position: relative; color: var(--text-light); display: flex; align-items: flex-start; padding: 12px 15px;
+            border-radius: var(--border-radius-inner); margin-bottom: 10px; font-size: 0.95rem;
+            transition: background-color 0.2s ease; line-height: 1.4; }
+        .sidebar .nav-link:hover { background-color: rgba(255, 255, 255, 0.1); color: var(--text-light); }
+        .sidebar .nav-link.active { background-color: rgba(0, 0, 0, 0.15); font-weight: 500; }
+        .sidebar .nav-link i { font-size: 1.4rem; margin-right: 20px; width: 25px; text-align: center;
+            color: rgba(255, 255, 255, 0.95); margin-top: 2px; }
+         /* Notification Badge Example */
+        .notification-badge {
+            position: absolute;
+            top: 8px;
+            right: 10px;
+            background-color: var(--unread-indicator-bg);
+            color: white;
+            font-size: 0.7rem;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 10px;
+            line-height: 1;
+             min-width: 18px; /* Ensure circle shape for single digit */
+             text-align: center;
+             display: none; /* Hidden initially */
+        }
+        .notification-badge.visible {
+            display: inline-block;
+        }
+
+
+        /* ----- Panel de Comunicación (Adaptado del Pseudo Editor) ----- */
+        #communication-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6); /* Fondo oscuro semi-transparente */
+            display: none; /* Oculto por defecto */
+            align-items: center;
+            justify-content: center;
+            z-index: 1050; /* Encima de otros elementos */
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        #communication-overlay.visible {
+            display: flex;
+            opacity: 1;
+        }
+
+        .communication-container {
+            background-color: var(--comment-bg);
+            border-radius: var(--border-radius-main);
+            width: 90%;
+            max-width: 750px; /* Smaller max-width for communication */
+            height: 85%;
+            max-height: 700px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+            overflow: hidden; /* Para contener bordes redondeados */
+        }
+
+        .communication-header {
+            background-color: var(--comment-header-bg);
+            padding: 15px 20px; /* Increased padding */
+            border-bottom: 1px solid var(--comment-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0; /* Evitar que se encoja */
+        }
+
+        .communication-header h5 {
+            margin: 0;
+            font-size: 1.1rem; /* Larger title in modal */
+            font-weight: 600;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: var(--text-dark);
+        }
+
+        #communication-close-btn {
+            background: none;
+            border: none;
+            font-size: 1.6rem; /* Slightly larger close button */
+            line-height: 1;
+            color: var(--icon-grey); /* Use icon grey */
+            opacity: 0.8;
+            cursor: pointer;
+            padding: 0 5px;
+        }
+        #communication-close-btn:hover { opacity: 1; color: var(--text-dark); }
+
+
+        /* Área del Hilo de Comentarios */
+        .comment-thread {
+            flex-grow: 1;
+            padding: 20px 25px;
+            overflow-y: auto; /* Scroll para comentarios */
+            background-color: #fdfdfd; /* Very light grey */
+        }
+
+        .comment {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        .comment-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: var(--primary-blue); /* Placeholder */
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 500;
+            font-size: 0.9rem;
+            margin-right: 12px;
+            flex-shrink: 0;
+            margin-top: 3px;
+        }
+        /* Simple way to get initials */
+        .comment-avatar[data-initials]::before {
+             content: attr(data-initials);
+        }
+
+        .comment-content {
+            flex-grow: 1;
+        }
+
+        .comment-header {
+            display: flex;
+            align-items: baseline;
+            margin-bottom: 5px;
+        }
+        .comment-author {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-dark);
+            margin-right: 8px;
+        }
+        .comment-timestamp {
+            font-size: 0.75rem;
+            color: var(--meta-text-color);
+        }
+        .comment-text {
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: var(--text-dark);
+            word-wrap: break-word; /* Wrap long words */
+        }
+        .comment-text p { margin-bottom: 0.5em; } /* Spacing within comment */
+        .comment-text p:last-child { margin-bottom: 0; }
+
+        .comment-actions {
+             margin-top: 5px;
+        }
+         .reply-link {
+             font-size: 0.8rem;
+             color: var(--primary-blue);
+             text-decoration: none;
+             cursor: pointer;
+             font-weight: 500;
+         }
+         .reply-link:hover {
+             text-decoration: underline;
+         }
+
+        /* Estilo para respuestas (simulado con margen) */
+        .comment.is-reply {
+            margin-left: 44px; /* Indent replies */
+        }
+
+
+        /* Área para escribir un nuevo comentario */
+        .comment-form-area {
+            padding: 15px 25px;
+            border-top: 1px solid var(--comment-border);
+            background-color: var(--comment-header-bg); /* Match header bg */
+            flex-shrink: 0;
+        }
+        #replying-to-indicator {
+             font-size: 0.8rem;
+             color: var(--meta-text-color);
+             margin-bottom: 5px;
+             display: none; /* Hidden by default */
+        }
+        #replying-to-indicator .cancel-reply {
+            margin-left: 8px;
+            color: var(--primary-blue);
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .comment-form {
+            display: flex;
+            align-items: flex-start; /* Align items top */
+        }
+        #new-comment-input {
+            flex-grow: 1;
+            min-height: 40px; /* Min height */
+            max-height: 120px; /* Max height before scroll */
+            resize: vertical;
+            border-radius: 18px; /* Pill shape */
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            border: 1px solid var(--comment-border);
+            margin-right: 10px;
+        }
+         #new-comment-input:focus {
+             outline: none;
+             border-color: var(--primary-blue);
+             box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+         }
+
+        #send-comment-btn {
+            background-color: var(--primary-blue);
+            color: white;
+            border: none;
+            border-radius: 50%; /* Circle button */
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            flex-shrink: 0;
+        }
+        #send-comment-btn:hover {
+            background-color: #3367d6; /* Darker blue */
+        }
+        #send-comment-btn:disabled {
+             background-color: #a0c3ff; /* Lighter blue when disabled */
+             cursor: not-allowed;
+        }
+
+
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- Área Principal -->
+        <main class="main-content">
+            <header class="main-header">
+                <h1>Bandeja de Equipo</h1>
+                <button class="btn btn-new-topic">
+                    <i class="bi bi-plus-lg me-2"></i>
+                    Nuevo Tema
+                </button>
+            </header>
+
+            <section class="discussion-list" id="discussion-list-container">
+                <!-- Item de Discusión 1 (Documento con mensaje no leído) -->
+                <div class="discussion-item" data-item-id="doc-001" data-item-title="Revisión Informe Trimestral Q3" data-item-type="document" data-unread="true">
+                    <div class="item-icon"><i class="bi bi-file-earmark-text-fill"></i></div>
+                    <div class="item-content">
+                        <div class="item-title">Revisión Informe Trimestral Q3</div>
+                        <div class="item-meta">Último mensaje: Carlos R. (Hace 5 min)</div>
+                    </div>
+                    <div class="unread-indicator" title="Mensajes nuevos"></div>
+                </div>
+
+                <!-- Item de Discusión 2 (Tarea) -->
+                <div class="discussion-item" data-item-id="task-001" data-item-title="Preparar presentación para cliente X" data-item-type="task" data-unread="false">
+                     <div class="item-icon"><i class="bi bi-check2-square"></i></div>
+                     <div class="item-content">
+                         <div class="item-title">Preparar presentación para cliente X</div>
+                         <div class="item-meta">Asignado a: Ana G. (Tú) - Vence: Mañana</div>
+                     </div>
+                     <div class="unread-indicator" title="Mensajes nuevos"></div>
+                 </div>
+
+                 <!-- Item de Discusión 3 (Reporte) -->
+                 <div class="discussion-item" data-item-id="report-001" data-item-title="Análisis de métricas de Mayo" data-item-type="report" data-unread="false">
+                     <div class="item-icon"><i class="bi bi-bar-chart-line-fill"></i></div>
+                     <div class="item-content">
+                         <div class="item-title">Análisis de métricas de Mayo</div>
+                         <div class="item-meta">Actualizado por: Laura M. (Ayer)</div>
+                     </div>
+                     <div class="unread-indicator" title="Mensajes nuevos"></div>
+                </div>
+
+                 <!-- Item de Discusión 4 (Documento) -->
+                 <div class="discussion-item" data-item-id="doc-002" data-item-title="Propuesta nuevo proyecto Alfa" data-item-type="document" data-unread="false">
+                     <div class="item-icon"><i class="bi bi-file-earmark-text-fill"></i></div>
+                     <div class="item-content">
+                         <div class="item-title">Propuesta nuevo proyecto Alfa</div>
+                         <div class="item-meta">Creado por: Javier S. (Hace 2 días)</div>
+                     </div>
+                     <div class="unread-indicator" title="Mensajes nuevos"></div>
+                </div>
+
+                 <!-- Item de Discusión 5 (Tarea con mensaje no leído) -->
+                <div class="discussion-item" data-item-id="task-002" data-item-title="Investigar herramientas de IA" data-item-type="task" data-unread="true">
+                    <div class="item-icon"><i class="bi bi-check2-square"></i></div>
+                    <div class="item-content">
+                        <div class="item-title">Investigar herramientas de IA para soporte</div>
+                        <div class="item-meta">Último mensaje: Tú (Hace 1 hora)</div>
+                    </div>
+                    <div class="unread-indicator" title="Mensajes nuevos"></div>
+                </div>
+
+
+            </section>
+        </main>
+
+        <!-- Barra Lateral -->
+        <aside class="sidebar">
+             <div class="user-info">
+                <i class="bi bi-person-circle"></i>
+                <span>Ana García</span>
+            </div>
+             <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link active" href="#">
+                        <i class="bi bi-inbox-fill"></i> <span>Bandeja<br>de Equipo</span>
+                        <span class="notification-badge" id="sidebar-notification-badge"></span>
+                    </a>
+                </li>
+                <li class="nav-item"> <a class="nav-link" href="#"> <i class="bi bi-check2-square"></i> <span>Mis Tareas</span> </a> </li>
+                <li class="nav-item"> <a class="nav-link" href="#"> <i class="bi bi-people-fill"></i> <span>Miembros</span> </a> </li>
+                <li class="nav-item"> <a class="nav-link" href="#"> <i class="bi bi-gear-fill"></i> <span>Configuración</span> </a> </li>
+            </ul>
+        </aside>
+    </div>
+
+    <!-- Panel de Comunicación (Oculto por defecto) -->
+    <div id="communication-overlay">
+        <div class="communication-container">
+            <div class="communication-header">
+                <h5 id="communication-item-title">Título del Tema</h5>
+                <button id="communication-close-btn" title="Cerrar">×</button>
+            </div>
+
+            <div class="comment-thread" id="comment-thread-container">
+                <!-- Comentarios se cargarán aquí dinámicamente -->
+                <div class="comment">
+                    <div class="comment-avatar" data-initials="CR"></div>
+                    <div class="comment-content">
+                        <div class="comment-header">
+                            <span class="comment-author">Carlos R.</span>
+                            <span class="comment-timestamp">Hace 5 minutos</span>
+                        </div>
+                        <div class="comment-text">
+                            <p>He añadido los últimos datos de ventas. ¿Alguien puede revisar la sección 3.2?</p>
+                        </div>
+                        <div class="comment-actions">
+                            <a href="#" class="reply-link" data-reply-to="Carlos R.">Responder</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="comment is-reply"> <!-- Ejemplo de Respuesta -->
+                     <div class="comment-avatar" data-initials="AG"></div>
+                     <div class="comment-content">
+                         <div class="comment-header">
+                             <span class="comment-author">Ana G. (Tú)</span>
+                             <span class="comment-timestamp">Hace 2 minutos</span>
+                         </div>
+                         <div class="comment-text">
+                             <p>¡Claro! Le echo un vistazo ahora mismo.</p>
+                         </div>
+                          <div class="comment-actions">
+                             <a href="#" class="reply-link" data-reply-to="Ana G. (Tú)">Responder</a>
+                         </div>
+                     </div>
+                 </div>
+
+                 <div class="comment">
+                    <div class="comment-avatar" data-initials="LM"></div>
+                    <div class="comment-content">
+                        <div class="comment-header">
+                            <span class="comment-author">Laura M.</span>
+                            <span class="comment-timestamp">Ayer</span>
+                        </div>
+                        <div class="comment-text">
+                             <p>Recordatorio: La fecha límite para la primera versión es el viernes.</p>
+                             <p>Adjunté las directrices de marca actualizadas en el otro canal.</p>
+                        </div>
+                        <div class="comment-actions">
+                            <a href="#" class="reply-link" data-reply-to="Laura M.">Responder</a>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="comment-form-area">
+                <div id="replying-to-indicator">
+                    Respondiendo a <strong id="replying-to-name">Nombre</strong>. <span class="cancel-reply">(Cancelar)</span>
+                 </div>
+                <form class="comment-form" id="comment-form">
+                    <textarea id="new-comment-input" placeholder="Escribe un comentario..." rows="1" required></textarea>
+                    <button type="submit" id="send-comment-btn" title="Enviar comentario" disabled>
+                        <i class="bi bi-send-fill"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+    <!-- JavaScript Personalizado -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const discussionListContainer = document.getElementById('discussion-list-container');
+            const communicationOverlay = document.getElementById('communication-overlay');
+            const communicationItemTitle = document.getElementById('communication-item-title');
+            const communicationCloseBtn = document.getElementById('communication-close-btn');
+            const commentThreadContainer = document.getElementById('comment-thread-container');
+            const commentForm = document.getElementById('comment-form');
+            const newCommentInput = document.getElementById('new-comment-input');
+            const sendCommentBtn = document.getElementById('send-comment-btn');
+            const sidebarNotificationBadge = document.getElementById('sidebar-notification-badge');
+            const replyingToIndicator = document.getElementById('replying-to-indicator');
+            const replyingToName = document.getElementById('replying-to-name');
+            const cancelReplyBtn = replyingToIndicator.querySelector('.cancel-reply');
+
+            let currentItemId = null; // Track which item's comments are open
+            let replyToAuthor = null; // Track if replying to a specific comment
+
+            // --- Input Handling ---
+            newCommentInput.addEventListener('input', () => {
+                // Enable button only if input is not empty
+                sendCommentBtn.disabled = newCommentInput.value.trim() === '';
+                // Auto-resize textarea
+                newCommentInput.style.height = 'auto';
+                newCommentInput.style.height = (newCommentInput.scrollHeight) + 'px';
+            });
+
+            // --- Open Communication Panel ---
+            if (discussionListContainer) {
+                discussionListContainer.addEventListener('click', (event) => {
+                    const discussionItem = event.target.closest('.discussion-item');
+
+                    if (discussionItem) {
+                        currentItemId = discussionItem.dataset.itemId;
+                        const itemTitle = discussionItem.dataset.itemTitle || 'Discusión';
+
+                        // Update the panel header
+                        communicationItemTitle.textContent = itemTitle;
+
+                        // --- Simulate loading comments for this item ---
+                        // In a real app, you'd fetch comments based on currentItemId
+                        // For this prototype, we'll just show the static example comments
+                        // OR clear and add a placeholder:
+                         // commentThreadContainer.innerHTML = '<p style="text-align:center; color: grey; padding: 40px;">Cargando comentarios...</p>';
+                         // setTimeout(() => { // Simulate delay
+                           loadExampleComments(currentItemId); // Load static or dynamic comments
+                         // }, 500);
+                        // ---
+
+                        // Mark item as read (remove indicator)
+                        discussionItem.dataset.unread = 'false';
+                        updateSidebarBadge(); // Update overall count
+
+                        // Show the communication panel
+                        communicationOverlay.classList.add('visible');
+                        document.body.classList.add('communication-open'); // Add class to body
+                        newCommentInput.focus(); // Focus input field
+                        clearReplyState(); // Ensure not replying when panel opens
+                    }
+                });
+            }
+
+            // --- Close Communication Panel ---
+            const closeCommunicationPanel = () => {
+                communicationOverlay.classList.remove('visible');
+                document.body.classList.remove('communication-open'); // Quitar clase del body
+                currentItemId = null; // Reset current item
+                clearReplyState();
+            };
+
+            if (communicationCloseBtn) {
+                communicationCloseBtn.addEventListener('click', closeCommunicationPanel);
+            }
+
+            if (communicationOverlay) {
+                communicationOverlay.addEventListener('click', (event) => {
+                    if (event.target === communicationOverlay) {
+                        closeCommunicationPanel();
+                    }
+                });
+            }
+
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape' && communicationOverlay.classList.contains('visible')) {
+                    closeCommunicationPanel();
+                }
+            });
+
+            // --- Comment Submission ---
+            if (commentForm) {
+                commentForm.addEventListener('submit', (event) => {
+                    event.preventDefault(); // Prevent default form submission
+                    const commentText = newCommentInput.value.trim();
+
+                    if (commentText) {
+                        // Simulate adding the comment to the thread
+                        addComment(commentText, "Ana G. (Tú)", "AG", replyToAuthor);
+
+                        // Clear input, disable button, reset size and reply state
+                        newCommentInput.value = '';
+                        sendCommentBtn.disabled = true;
+                        newCommentInput.style.height = 'auto';
+                        clearReplyState();
+
+                        // --- Simulate updating the main list item ---
+                        const mainListItem = discussionListContainer.querySelector(`.discussion-item[data-item-id="${currentItemId}"]`);
+                        if(mainListItem) {
+                             const meta = mainListItem.querySelector('.item-meta');
+                             if(meta) meta.textContent = "Último mensaje: Tú (Ahora)";
+                             // Optional: move item to top? Requires more complex DOM manipulation.
+                        }
+                        // ---
+                    }
+                });
+            }
+
+            // --- Reply Functionality ---
+             commentThreadContainer.addEventListener('click', (event) => {
+                 if (event.target.classList.contains('reply-link')) {
+                     event.preventDefault();
+                     replyToAuthor = event.target.dataset.replyTo || 'Usuario';
+                     replyingToName.textContent = replyToAuthor;
+                     replyingToIndicator.style.display = 'block';
+                     newCommentInput.focus();
+                     newCommentInput.placeholder = `Respondiendo a ${replyToAuthor}...`;
+                 }
+             });
+
+             cancelReplyBtn.addEventListener('click', () => {
+                 clearReplyState();
+                 newCommentInput.focus();
+             });
+
+             function clearReplyState() {
+                 replyToAuthor = null;
+                 replyingToIndicator.style.display = 'none';
+                 newCommentInput.placeholder = 'Escribe un comentario...';
+             }
+
+
+            // --- Add Comment Function (Helper) ---
+            function addComment(text, author, initials, replyingTo = null) {
+                const commentDiv = document.createElement('div');
+                commentDiv.classList.add('comment');
+                if (replyingTo) {
+                    commentDiv.classList.add('is-reply'); // Add reply style
+                }
+
+                const avatarDiv = document.createElement('div');
+                avatarDiv.classList.add('comment-avatar');
+                avatarDiv.dataset.initials = initials;
+
+                const contentDiv = document.createElement('div');
+                contentDiv.classList.add('comment-content');
+
+                const headerDiv = document.createElement('div');
+                headerDiv.classList.add('comment-header');
+                headerDiv.innerHTML = `<span class="comment-author">${author}</span> <span class="comment-timestamp">Ahora</span>`;
+
+                const textDiv = document.createElement('div');
+                textDiv.classList.add('comment-text');
+                 // Simple paragraph wrapping, in real app might need more complex handling
+                text.split('\n').forEach(paragraph => {
+                    if(paragraph.trim()) {
+                        const p = document.createElement('p');
+                        p.textContent = paragraph;
+                        textDiv.appendChild(p);
+                    }
+                });
+                // If replying, add a mention/quote simulation
+                if (replyingTo) {
+                     const replyBlock = document.createElement('p');
+                     replyBlock.innerHTML = `<em>En respuesta a ${replyingTo}:</em>`;
+                     replyBlock.style.opacity = '0.7';
+                     replyBlock.style.fontSize = '0.85em';
+                     replyBlock.style.marginBottom = '0.3em';
+                     textDiv.insertBefore(replyBlock, textDiv.firstChild);
+                }
+
+
+                const actionsDiv = document.createElement('div');
+                actionsDiv.classList.add('comment-actions');
+                actionsDiv.innerHTML = `<a href="#" class="reply-link" data-reply-to="${author}">Responder</a>`;
+
+
+                contentDiv.appendChild(headerDiv);
+                contentDiv.appendChild(textDiv);
+                contentDiv.appendChild(actionsDiv);
+
+                commentDiv.appendChild(avatarDiv);
+                commentDiv.appendChild(contentDiv);
+
+                commentThreadContainer.appendChild(commentDiv);
+
+                // Scroll to the new comment
+                commentThreadContainer.scrollTop = commentThreadContainer.scrollHeight;
+            }
+
+            // --- Load Example Comments (Helper) ---
+            // This simulates loading data. In a real app, this would fetch from a server.
+            function loadExampleComments(itemId) {
+                // Clear existing comments before loading new ones
+                commentThreadContainer.innerHTML = '';
+
+                // Example: Load different static comments based on ID (or just use the default ones)
+                if (itemId === 'doc-001') {
+                     addComment("He añadido los últimos datos de ventas. ¿Alguien puede revisar la sección 3.2?", "Carlos R.", "CR");
+                     addComment("¡Claro! Le echo un vistazo ahora mismo.", "Ana G. (Tú)", "AG", "Carlos R."); // Example reply
+                     addComment("Yo puedo revisarlo mañana por la mañana.", "Laura M.", "LM");
+                } else if (itemId === 'task-002') {
+                     addComment("¿Alguna sugerencia inicial sobre qué tipo de herramientas buscar?", "Javier S.", "JS");
+                     addComment("Podríamos empezar mirando soluciones open-source y luego comparar con las de pago.", "Ana G. (Tú)", "AG", "Javier S."); // Example reply
+                } else {
+                     // Default / Placeholder comments if needed
+                     addComment("Este es el inicio de la conversación sobre este tema.", "Sistema", "S");
+                     addComment("Puedes añadir comentarios usando el cuadro de abajo.", "Sistema", "S");
+                }
+                commentThreadContainer.scrollTop = 0; // Scroll to top after loading
+            }
+
+
+            // --- Simulate Real-time Notifications ---
+            let notificationInterval;
+            function startNotificationSimulation() {
+                notificationInterval = setInterval(() => {
+                    const allItems = discussionListContainer.querySelectorAll('.discussion-item');
+                    const unreadItems = discussionListContainer.querySelectorAll('.discussion-item[data-unread="true"]');
+
+                    // Only add a new notification if not all items are already unread
+                    if (allItems.length > 0 && unreadItems.length < allItems.length) {
+                        let randomItem;
+                        let attempts = 0;
+                         // Try to find an item that is not already marked as unread
+                        do {
+                            const randomIndex = Math.floor(Math.random() * allItems.length);
+                            randomItem = allItems[randomIndex];
+                            attempts++;
+                        } while (randomItem.dataset.unread === 'true' && attempts < allItems.length * 2); // Avoid infinite loop
+
+                        if (randomItem.dataset.unread !== 'true') {
+                             // Simulate receiving a new message for this item
+                            randomItem.dataset.unread = 'true';
+                            // Update meta text (optional)
+                            const meta = randomItem.querySelector('.item-meta');
+                            if(meta) meta.textContent = `Nuevo mensaje: ${['Carlos R.', 'Laura M.', 'Javier S.'][Math.floor(Math.random()*3)]} (Ahora)`;
+                            // Add highlight effect
+                            randomItem.classList.add('new-message-highlight');
+                            setTimeout(() => { // Remove highlight after animation
+                                 randomItem.classList.remove('new-message-highlight');
+                            }, 1500);
+
+                            updateSidebarBadge();
+                            console.log(`Simulated new message for: ${randomItem.dataset.itemTitle}`);
+                        }
+                    }
+
+                }, 8000); // Simulate a new message every 8 seconds
+            }
+
+            function stopNotificationSimulation() {
+                clearInterval(notificationInterval);
+            }
+
+            // --- Update Sidebar Notification Badge ---
+            function updateSidebarBadge() {
+                 const unreadCount = discussionListContainer.querySelectorAll('.discussion-item[data-unread="true"]').length;
+                 if (unreadCount > 0) {
+                     sidebarNotificationBadge.textContent = unreadCount;
+                     sidebarNotificationBadge.classList.add('visible');
+                 } else {
+                     sidebarNotificationBadge.classList.remove('visible');
+                 }
+             }
+
+            // --- Initial Setup ---
+            updateSidebarBadge(); // Initial check on load
+            startNotificationSimulation(); // Start simulating notifications
+
+            // Optional: Stop simulation when window loses focus
+            // window.addEventListener('blur', stopNotificationSimulation);
+            // window.addEventListener('focus', startNotificationSimulation);
+
+        });
+    </script>
+
+</body>
+</html>
