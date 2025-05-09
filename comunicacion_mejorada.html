@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comunicación de Equipo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <style>
+        /* Variables de color y esquemas (Combinadas y refinadas) */
+        :root {
+            --primary-blue: #4285f4; /* Google Blue */
+            --bg-gradient-start: #e8f0fe; /* Lighter blue start */
+            --bg-gradient-end: #d6e2f7; /* Lighter blue end */
+            --bg-content: #f8f9fa; /* Lighter content background */
+            --sidebar-bg: #4285f4; /* Google Blue */
+            --text-dark: #202124; /* Google Dark Grey */
+            --text-light: #ffffff;
+            --meta-text: #5f6368; /* Google Medium Grey */
+            --border-light: #dadce0; /* Google Border Grey */
+            --hover-bg: #e8eaed; /* Google Light Grey for hover */
+            --unread-red: #d93025; /* Google Red */
+            --radius-main: 12px;
+            --radius-inner: 8px;
+            --sidebar-width: 260px;
+            --comment-header-bg: #f1f3f4; /* Slightly darker grey for header */
+        }
+        *, *::before, *::after { box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 2rem;
+            background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end));
+            color: var(--text-dark);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: filter 0.3s ease; /* Transición para el desenfoque */
+        }
+         /* Estilo para desenfocar el fondo cuando el panel de comunicación está abierto */
+        body.communication-open > .app-container {
+             filter: blur(3px);
+             pointer-events: none; /* Evitar interacción con el fondo */
+        }
+
+        .app-container {
+            display: flex;
+            width: 100%;
+            max-width: 1100px;
+            min-height: 680px; /* Altura mínima */
+            background: var(--bg-content);
+            border-radius: var(--radius-main);
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+        aside.sidebar {
+            width: var(--sidebar-width);
+            background: var(--sidebar-bg);
+            color: var(--text-light);
+            padding: 35px 20px 35px 30px; /* Ajustado padding */
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            margin-bottom: 35px; /* Ajustado margin */
+            padding-left: 5px;
+        }
+        .user-info .bi-person-circle {
+            font-size: 2rem;
+            margin-right: 15px; /* Ajustado margin */
+            color: rgba(255, 255, 255, 0.95);
+        }
+         .user-info span { font-size: 1.05rem; font-weight: 500; }
+
+        nav.channel-nav { flex-grow: 1; } /* Para que ocupe espacio */
+        nav.channel-nav a {
+            position: relative; /* Para el badge */
+            color: var(--text-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px; /* Ajustado padding */
+            border-radius: var(--radius-inner);
+            text-decoration: none;
+            margin-bottom: 10px; /* Ajustado margin */
+            transition: background 0.2s;
+            font-size: 0.95rem;
+        }
+        nav.channel-nav a:hover,
+        nav.channel-nav a.active {
+            background: rgba(0,0,0,0.15);
+        }
+        .notification-badge {
+            background: var(--unread-red);
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 10px;
+             min-width: 18px; /* Ensure circle shape for single digit */
+             text-align: center;
+            line-height: 1;
+             display: none; /* Hidden initially */
+        }
+         .notification-badge.visible { display: inline-block; }
+
+        main.main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 30px 40px; /* Ajustado padding */
+        }
+        .main-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-light);
+            padding-bottom: 20px; /* Ajustado padding */
+            margin-bottom: 35px; /* Ajustado margin */
+        }
+         .main-header h1 {
+            font-size: 1.8rem; /* Slightly smaller title */
+            font-weight: 700;
+            margin: 0;
+        }
+        .btn-new-topic {
+            background: var(--primary-blue);
+            color: #fff;
+            border: none;
+            border-radius: 50px;
+            padding: 8px 25px; /* Ajustado padding */
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: background-color 0.2s ease;
+        }
+         .btn-new-topic:hover {
+             background-color: #3367d6; /* Darker Google blue */
+         }
+
+        .discussion-list {
+            flex: 1;
+            overflow-y: auto;
+            margin: 0 -15px; /* Counteract padding on items */
+            padding: 0 10px;
+        }
+        /* Items de Discusión (Mejorados con iconos y tipos) */
+        .discussion-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-radius: var(--radius-inner);
+            margin-bottom: 12px; /* Space between items */
+            cursor: pointer;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease;
+            position: relative; /* For unread indicator */
+            background-color: #fff; /* White background for items */
+            border: 1px solid var(--border-light);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+         .discussion-item:hover {
+             background-color: var(--hover-bg);
+             box-shadow: 0 2px 5px rgba(0,0,0,0.06);
+        }
+        .item-icon {
+            font-size: 1.8rem;
+            color: var(--primary-blue); /* Default icon color */
+            margin-right: 18px;
+            flex-shrink: 0;
+            width: 35px;
+            text-align: center;
+        }
+         /* Colores de icono por tipo (del prototipo viejo) */
+        .discussion-item[data-item-type="document"] .item-icon { color: #0d6efd; } /* Blue for docs */
+        .discussion-item[data-item-type="task"] .item-icon { color: #198754; } /* Green for tasks */
+        .discussion-item[data-item-type="report"] .item-icon { color: #fd7e14; } /* Orange for reports */
+
+
+        .item-content {
+            flex-grow: 1;
+            min-width: 0; /* Prevents text overflow issues */
+        }
+        .item-title {
+            font-size: 0.95rem; /* Ajustado */
+            font-weight: 500;
+            margin: 0 0 3px 0; /* Ajustado margin */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .item-meta {
+            font-size: 0.75rem;
+            color: var(--meta-text);
+            line-height: 1.3;
+             white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+         /* Indicador de mensaje no leído (del prototipo viejo) */
+        .unread-indicator {
+            width: 10px;
+            height: 10px;
+            background-color: var(--unread-red);
+            border-radius: 50%;
+            position: absolute;
+            top: 12px; /* Position near top right */
+            right: 12px;
+            display: none; /* Hidden by default */
+            box-shadow: 0 0 0 2px var(--content-bg); /* Ring effect */
+        }
+        .discussion-item[data-unread="true"] .unread-indicator {
+            display: block; /* Show when data attribute is true */
+        }
+        .discussion-item.new-message-highlight { /* For subtle notification effect */
+             animation: pulse-bg 1.5s ease-out;
+        }
+
+        @keyframes pulse-bg {
+            0% { background-color: #fff; }
+            30% { background-color: #e8f0fe; } /* Light blue pulse */
+            100% { background-color: #fff; }
+        }
+
+
+        /* Overlay y modales (Combinados y mejorados) */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0; /* Para transición */
+            transition: opacity 0.3s ease;
+        }
+        .overlay.visible {
+            display: flex;
+            opacity: 1;
+        }
+        .modal-content-custom {
+            background: #fff;
+            border-radius: var(--radius-main);
+            width: 90%;
+            max-width: 800px; /* Ancho para modal de nuevo tema */
+            max-height: 90%;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+             box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+        }
+         /* Ancho específico para el modal de comentarios */
+         .modal-content-custom.comments-modal {
+             max-width: 750px; /* Ancho para modal de comentarios (del prototipo viejo) */
+             height: 85%; /* Altura para modal de comentarios */
+             max-height: 700px; /* Altura máxima */
+         }
+
+        .modal-header-custom {
+            padding: 1rem;
+            background: var(--comment-header-bg); /* Color del prototipo viejo */
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+             flex-shrink: 0; /* Evitar que se encoja */
+        }
+         .modal-header-custom h5 {
+             margin: 0;
+             font-size: 1.1rem; /* Larger title in modal */
+             font-weight: 600;
+             overflow: hidden;
+             text-overflow: ellipsis;
+             white-space: nowrap;
+             color: var(--text-dark);
+         }
+        .btn-close { /* Estilo del botón de cerrar */
+            background: none;
+            border: none;
+            font-size: 1.6rem; /* Slightly larger close button */
+            line-height: 1;
+            color: var(--meta-text); /* Use icon grey */
+            opacity: 0.8;
+            cursor: pointer;
+            padding: 0 5px;
+        }
+        .btn-close:hover { opacity: 1; color: var(--text-dark); }
+
+        .modal-body-custom {
+            padding: 1rem;
+            background: #fff;
+            overflow-y: auto;
+            flex: 1;
+        }
+         /* Área del Hilo de Comentarios (del prototipo viejo) */
+        .modal-body-custom.comment-thread-container {
+            padding: 20px 25px;
+            background-color: #fdfdfd; /* Very light grey */
+        }
+
+        .modal-footer-custom {
+            padding: 1rem;
+            background: var(--comment-header-bg); /* Color del prototipo viejo */
+            border-top: 1px solid var(--border-light);
+             flex-shrink: 0;
+        }
+
+        /* Comentarios y discusiones (Mejorados) */
+        .comment-item { /* Renombrado para evitar conflicto, usado en la plantilla */
+            display: flex;
+            margin-bottom: 20px;
+        }
+        .comment-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: var(--primary-blue); /* Placeholder */
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 500;
+            font-size: 0.9rem;
+            margin-right: 12px;
+            flex-shrink: 0;
+            margin-top: 3px;
+        }
+         /* Simple way to get initials */
+        .comment-avatar[data-initials]::before {
+             content: attr(data-initials);
+        }
+
+        .comment-content {
+            flex-grow: 1;
+        }
+
+        .comment-header {
+            display: flex;
+            align-items: baseline; /* Alineación del prototipo viejo */
+            margin-bottom: 5px; /* Ajustado margin */
+        }
+        .comment-author {
+            font-weight: 600;
+            font-size: 0.9rem; /* Ajustado font-size */
+            color: var(--text-dark);
+            margin-right: 8px; /* Ajustado margin */
+        }
+        .comment-timestamp {
+            font-size: 0.75rem;
+            color: var(--meta-text);
+        }
+        .comment-text {
+            font-size: 0.9rem; /* Ajustado font-size */
+            line-height: 1.5;
+            color: var(--text-dark);
+             word-wrap: break-word; /* Wrap long words */
+        }
+         .comment-text p { margin-bottom: 0.5em; } /* Spacing within comment */
+         .comment-text p:last-child { margin-bottom: 0; }
+
+        .mention {
+            color: var(--primary-blue);
+            font-weight: 500;
+        }
+        .comment-attachments {
+            margin-top: 0.5rem;
+            display: flex;
+            gap: 0.5rem;
+             flex-wrap: wrap; /* Allow wrapping */
+        }
+        .comment-attachments img {
+            max-width: 100px;
+            height: auto; /* Maintain aspect ratio */
+            border-radius: var(--radius-inner);
+            border: 1px solid var(--border-light); /* Optional border */
+        }
+         .comment-attachments a {
+             font-size: 0.85rem;
+             color: var(--primary-blue);
+             text-decoration: none;
+             display: inline-flex; /* Align icon/text */
+             align-items: center;
+         }
+         .comment-attachments a i {
+             margin-right: 4px;
+         }
+
+
+        .comment-actions {
+            margin-top: 5px; /* Ajustado margin */
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .reply-link {
+            font-size: 0.8rem; /* Ajustado font-size */
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            color: var(--primary-blue); /* Color del prototipo viejo */
+            text-decoration: none; /* Sin subrayado */
+            font-weight: 500;
+        }
+         .reply-link:hover { text-decoration: underline; } /* Subrayado al pasar el ratón */
+
+        .like-btn { /* Estilo del botón like */
+             font-size: 0.8rem; /* Ajustado font-size */
+             cursor: pointer;
+             display: flex;
+             align-items: center;
+             gap: 0.25rem;
+             color: var(--meta-text);
+             transition: color 0.2s ease;
+         }
+         .like-btn.liked {
+             color: var(--primary-blue);
+         }
+
+         /* Estilo para respuestas (simulado con margen, del prototipo viejo) */
+        .comment-item.is-reply {
+            margin-left: 44px; /* Indent replies */
+        }
+         .comment-item.is-reply .comment-avatar {
+             /* Optional: smaller avatar for replies */
+             width: 28px;
+             height: 28px;
+             font-size: 0.8rem;
+         }
+
+
+         /* Área para escribir un nuevo comentario (del prototipo viejo) */
+        .comment-form-area {
+            padding: 15px 25px;
+            border-top: 1px solid var(--border-light);
+            background-color: var(--comment-header-bg); /* Match header bg */
+            flex-shrink: 0;
+        }
+        #replying-to-indicator {
+             font-size: 0.8rem;
+             color: var(--meta-text);
+             margin-bottom: 5px;
+             display: none; /* Hidden by default */
+        }
+        #replying-to-indicator .cancel-reply {
+            margin-left: 8px;
+            color: var(--primary-blue);
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .comment-form {
+            display: flex;
+            align-items: flex-start; /* Align items top */
+        }
+        #comment-input { /* Renombrado a comment-input */
+            flex-grow: 1;
+            min-height: 40px; /* Min height */
+            max-height: 120px; /* Max height before scroll */
+            resize: vertical;
+            border-radius: 18px; /* Pill shape */
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            border: 1px solid var(--border-light);
+            margin-right: 10px;
+             outline: none; /* Remove default outline */
+        }
+         #comment-input:focus {
+             border-color: var(--primary-blue);
+             box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+         }
+
+        #send-comment { /* Renombrado a send-comment */
+            background-color: var(--primary-blue);
+            color: white;
+            border: none;
+            border-radius: 50%; /* Circle button */
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            flex-shrink: 0;
+             padding: 0; /* Remove padding */
+        }
+        #send-comment:hover {
+            background-color: #3367d6; /* Darker blue */
+        }
+        #send-comment:disabled {
+             background-color: #a0c3ff; /* Lighter blue when disabled */
+             cursor: not-allowed;
+        }
+
+        /* Adjuntos en el formulario de comentario */
+        .attachment-area {
+            display: flex;
+            align-items: center;
+            margin-top: 0.5rem;
+             gap: 10px;
+        }
+        #attach-btn {
+             background: none;
+             border: none;
+             color: var(--meta-text);
+             font-size: 1.2rem;
+             cursor: pointer;
+             padding: 0 5px;
+        }
+        #attach-btn:hover {
+             color: var(--text-dark);
+        }
+        #attach-preview {
+             font-size: 0.85rem;
+             color: var(--meta-text);
+             display: flex;
+             gap: 5px;
+             flex-wrap: wrap;
+        }
+         #attach-preview img {
+             height: 24px; /* Smaller preview */
+             border-radius: 4px;
+             border: 1px solid var(--border-light);
+         }
+         #attach-preview span { /* For file names */
+             background-color: var(--hover-bg);
+             padding: 2px 6px;
+             border-radius: 4px;
+         }
+
+
+        /* Contenedor de notificaciones (Toast) */
+        .position-fixed.top-0.end-0.p-3 {
+            z-index: 1100;
+        }
+        .toast { /* Estilo básico de toast de Bootstrap */
+            opacity: 0; /* Inicialmente oculto */
+            transition: opacity 0.3s ease-in-out;
+        }
+        .toast.show {
+            opacity: 1;
+        }
+
+
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <aside class="sidebar" role="navigation" aria-label="Canales de comunicación">
+        <div class="user-info"><i class="bi bi-person-circle"></i><span id="user-name">Ana García</span></div>
+        <nav class="channel-nav">
+            <a href="#" data-channel="general" class="active">General <span class="notification-badge" id="badge-general"></span></a>
+            <a href="#" data-channel="proyectos">Proyectos <span class="notification-badge" id="badge-proyectos"></span></a>
+            <a href="#" data-channel="soporte">Soporte <span class="notification-badge" id="badge-soporte"></span></a>
+        </nav>
+    </aside>
+    <main class="main-content">
+        <header class="main-header">
+            <h1 id="channel-title">General</h1>
+            <button class="btn btn-new-topic" id="btn-new-topic" aria-label="Crear nuevo tema">
+                 <i class="bi bi-plus-lg me-2"></i>
+                 Nuevo Tema
+            </button>
+        </header>
+        <section class="discussion-list" id="discussion-list-container" aria-label="Lista de discusiones"></section>
+    </main>
+</div>
+
+<template id="tpl-discussion-item">
+    <div class="discussion-item" role="button">
+        <div class="item-icon"><i class="bi"></i></div> <div class="item-content">
+            <p class="item-title"></p>
+            <p class="item-meta"></p>
+        </div>
+        <div class="unread-indicator" title="Mensajes nuevos"></div> </div>
+</template>
+
+<template id="tpl-comment-item">
+    <div class="comment-item">
+        <div class="comment-avatar"></div>
+        <div class="comment-content">
+            <div class="comment-header">
+                <span class="comment-author"></span>
+                <span class="comment-timestamp"></span>
+            </div>
+            <div class="comment-text"></div>
+            <div class="comment-attachments"></div>
+            <div class="comment-actions">
+                <div class="reply-link" aria-label="Responder"><i class="bi bi-reply"></i>Responder</div>
+                <div class="like-btn" aria-label="Me gusta"><i class="bi bi-hand-thumbs-up"></i> <span class="like-count">0</span></div>
+            </div>
+        </div>
+    </div>
+</template>
+
+<div id="new-topic-modal" class="overlay" role="dialog" aria-modal="true" aria-labelledby="new-topic-title">
+    <div class="modal-content-custom">
+        <div class="modal-header-custom">
+            <h5 id="new-topic-title">Crear nuevo tema</h5>
+            <button type="button" class="btn-close" id="btn-cancel-topic" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body-custom">
+            <input type="text" id="new-topic-title-input" class="form-control mb-2" placeholder="Título del tema">
+            <textarea id="new-topic-content-input" class="form-control mb-2" rows="4" placeholder="Contenido inicial..."></textarea>
+             <div class="mb-2">
+                 <label for="new-topic-type" class="form-label">Tipo de tema:</label>
+                 <select id="new-topic-type" class="form-select">
+                     <option value="discussion">Discusión</option>
+                     <option value="document">Documento</option>
+                     <option value="task">Tarea</option>
+                     <option value="report">Reporte</option>
+                 </select>
+             </div>
+        </div>
+        <div class="modal-footer-custom text-end">
+            <button type="button" class="btn btn-secondary me-2" id="btn-cancel-topic-2">Cancelar</button>
+            <button type="button" class="btn btn-primary" id="btn-create-topic">Crear</button>
+        </div>
+    </div>
+</div>
+
+<div id="comments-modal" class="overlay" role="dialog" aria-modal="true" aria-labelledby="comments-title">
+    <div class="modal-content-custom comments-modal"> <div class="modal-header-custom">
+            <h5 id="comments-title">Título del Tema</h5>
+            <button type="button" class="btn-close" id="btn-close-comments" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body-custom comment-thread-container" id="comment-thread"></div> <div class="modal-footer-custom comment-form-area"> <div id="replying-to-indicator">
+                 Respondiendo a <strong id="replying-to-name"></strong>. <span class="cancel-reply">(Cancelar)</span>
+             </div>
+            <div class="comment-form" id="comment-form"> <textarea id="comment-input" placeholder="Escribe un comentario..." rows="1" required></textarea>
+                 <button type="button" id="send-comment" title="Enviar comentario" disabled> <i class="bi bi-send-fill"></i>
+                 </button>
+            </div>
+             <div class="attachment-area">
+                 <input type="file" id="attach-input" multiple hidden>
+                 <button type="button" class="btn btn-light btn-sm" id="attach-btn" aria-label="Adjuntar archivo"><i class="bi bi-paperclip"></i> Adjuntar</button>
+                 <span id="attach-preview"></span>
+             </div>
+        </div>
+    </div>
+</div>
+
+<div class="position-fixed top-0 end-0 p-3" style="z-index: 1100;" id="toast-container"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+
+<script>
+(() => {
+    // DOM shortcuts (Combinados y actualizados)
+    const DOM = {
+        body: document.body,
+        nav: document.querySelector('.channel-nav'),
+        channelLinks: [...document.querySelectorAll('.channel-nav a')],
+        badges: {
+            general: document.getElementById('badge-general'),
+            proyectos: document.getElementById('badge-proyectos'),
+            soporte: document.getElementById('badge-soporte')
+        },
+        discussionListContainer: document.getElementById('discussion-list-container'), // Renombrado
+        channelTitle: document.getElementById('channel-title'),
+        newTopicBtn: document.getElementById('btn-new-topic'),
+        newTopicModal: document.getElementById('new-topic-modal'),
+        createTopicBtn: document.getElementById('btn-create-topic'),
+        cancelTopicBtns: [...document.querySelectorAll('#btn-cancel-topic, #btn-cancel-topic-2')],
+        topicTitleInput: document.getElementById('new-topic-title-input'),
+        topicContentInput: document.getElementById('new-topic-content-input'),
+        topicTypeSelect: document.getElementById('new-topic-type'), // Añadido selector de tipo
+        commentsModal: document.getElementById('comments-modal'), // Overlay de comentarios
+        closeCommentsBtn: document.getElementById('btn-close-comments'),
+        commentThreadContainer: document.getElementById('comment-thread'), // Contenedor de comentarios
+        commentInput: document.getElementById('comment-input'), // Input de comentario
+        sendCommentBtn: document.getElementById('send-comment'), // Botón de enviar
+        attachBtn: document.getElementById('attach-btn'), // Botón adjuntar
+        attachInput: document.getElementById('attach-input'), // Input adjuntar
+        attachPreview: document.getElementById('attach-preview'), // Preview adjuntos
+        toastContainer: document.getElementById('toast-container'), // Contenedor de toasts
+        tplDiscussion: document.getElementById('tpl-discussion-item'), // Plantilla discusión
+        tplComment: document.getElementById('tpl-comment-item'), // Plantilla comentario
+        userName: document.getElementById('user-name'), // Nombre del usuario actual
+        replyingToIndicator: document.getElementById('replying-to-indicator'), // Indicador de respuesta
+        replyingToName: document.getElementById('replying-to-name'), // Nombre en indicador de respuesta
+        cancelReplyBtn: document.querySelector('#replying-to-indicator .cancel-reply') // Botón cancelar respuesta
+    };
+
+    // Datos iniciales (Combinados y con tipos)
+    const data = {
+        general: [
+            {
+                id: 1,
+                title: 'Reunión de lanzamiento del proyecto Beta',
+                type: 'discussion', // Añadido tipo
+                messages: [
+                    { author: 'María', time: '10:24', text: '¡Bienvenidos! @Carlos, ¿puedes compartir la agenda?', attachments: [], likes: 2 },
+                    { author: 'Carlos', time: '10:30', text: 'Claro @María, aquí tienes la agenda adjunta.', attachments: [{ type: 'file', name: 'agenda.pdf', url: '#' }], likes: 1 },
+                    { author: 'Ana García', time: '10:35', text: 'Gracias por compartir.', attachments: [], likes: 0 }
+                ],
+                unread: 3 // Mensajes sin leer iniciales
+            },
+            {
+                 id: 2,
+                 title: 'Revisión Informe Trimestral Q3',
+                 type: 'document', // Añadido tipo
+                 messages: [
+                     { author: 'Carlos R.', time: 'Hace 5 minutos', text: 'He añadido los últimos datos de ventas. ¿Alguien puede revisar la sección 3.2?', attachments: [], likes: 0 },
+                     { author: 'Ana García', time: 'Hace 2 minutos', text: '¡Claro! Le echo un vistazo ahora mismo.', attachments: [], likes: 0, replyTo: 'Carlos R.' }, // Ejemplo de respuesta
+                     { author: 'Laura M.', time: 'Ayer', text: 'Yo puedo revisarlo mañana por la mañana.', attachments: [], likes: 0 }
+                 ],
+                 unread: 0 // Mensajes sin leer iniciales
+             },
+             {
+                 id: 3,
+                 title: 'Preparar presentación para cliente X',
+                 type: 'task', // Añadido tipo
+                 messages: [
+                     { author: 'Ana García', time: 'Hace 1 día', text: 'Tarea asignada a mí. Empezaré hoy.', attachments: [], likes: 0 }
+                 ],
+                 unread: 0 // Mensajes sin leer iniciales
+             }
+        ],
+        proyectos: [],
+        soporte: []
+    };
+    let currentChannel = 'general';
+    let currentDiscussion = null;
+    let replyToAuthor = null; // Para la funcionalidad de respuesta
+
+    // Formateo de hora (simple, se podría mejorar)
+    const fmtTime = date => {
+         const now = new Date();
+         const diffMs = now - date;
+         const diffMinutes = Math.round(diffMs / 60000);
+         const diffHours = Math.round(diffMs / 3600000);
+         const diffDays = Math.round(diffMs / 86400000);
+
+         if (diffMinutes < 1) return 'Ahora';
+         if (diffMinutes < 60) return `Hace ${diffMinutes} minuto(s)`;
+         if (diffHours < 24) return `Hace ${diffHours} hora(s)`;
+         if (diffDays < 7) return `Hace ${diffDays} día(s)`;
+         return date.toLocaleDateString('es-ES'); // O formatear más detallado
+    };
+
+     // Obtener iniciales para el avatar
+     const getInitials = name => {
+         if (!name) return '';
+         const parts = name.split(' ');
+         if (parts.length > 1) {
+             return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+         }
+         return parts[0][0].toUpperCase();
+     };
+
+     // Obtener icono según el tipo de discusión
+     const getItemIconClass = type => {
+         switch (type) {
+             case 'document': return 'bi-file-earmark-text-fill';
+             case 'task': return 'bi-check2-square';
+             case 'report': return 'bi-bar-chart-line-fill';
+             default: return 'bi-chat-dots'; // Icono de discusión por defecto
+         }
+     };
+
+
+    // Renderizado de lista de discusiones
+    const renderDiscussionList = () => {
+        DOM.discussionListContainer.innerHTML = '';
+        const discussions = data[currentChannel];
+        if (!discussions || discussions.length === 0) {
+             DOM.discussionListContainer.innerHTML = '<p style="text-align:center; color: var(--meta-text); padding: 20px;">No hay temas en este canal.</p>';
+             return;
+        }
+
+        discussions.forEach(d => {
+            const item = DOM.tplDiscussion.content.firstElementChild.cloneNode(true);
+            item.dataset.itemId = d.id; // Añadir ID para referencia
+            item.dataset.itemType = d.type; // Añadir tipo para icono/estilo
+
+            // Configurar icono según el tipo
+            const iconElement = item.querySelector('.item-icon i');
+            iconElement.className = 'bi ' + getItemIconClass(d.type); // Reemplazar clases
+
+            item.querySelector('.item-title').textContent = d.title;
+
+            // Mostrar el último mensaje o un estado
+            let lastMessageMeta = 'Sin mensajes';
+            if (d.messages && d.messages.length > 0) {
+                 const lastMsg = d.messages[d.messages.length - 1];
+                 lastMessageMeta = `Último mensaje: ${lastMsg.author} (${lastMsg.time})`; // Usar el tiempo del mensaje
+            } else {
+                 lastMessageMeta = `Creado por ${d.messages[0]?.author || 'Desconocido'}`; // Si solo hay mensaje inicial
+            }
+             item.querySelector('.item-meta').textContent = lastMessageMeta;
+
+
+            // Indicador de no leído
+            if (d.unread > 0) {
+                 item.dataset.unread = 'true'; // Usar data attribute
+                 // Podríamos añadir el contador al meta text también si se desea
+                 // item.querySelector('.item-meta').textContent += ` - ${d.unread} sin leer`;
+            } else {
+                 item.dataset.unread = 'false';
+            }
+
+            item.addEventListener('click', () => openDiscussion(d.id));
+            DOM.discussionListContainer.append(item);
+        });
+        updateSidebarBadge(); // Actualizar badge de la barra lateral
+    };
+
+    // Abrir discusión (mostrar comentarios)
+    const openDiscussion = id => {
+        currentDiscussion = data[currentChannel].find(d => d.id === id);
+        if (!currentDiscussion) {
+             showToast('Error: Tema no encontrado.');
+             return;
+        }
+        DOM.commentsModal.querySelector('#comments-title').textContent = currentDiscussion.title;
+        renderComments();
+        toggleModal(DOM.commentsModal, true);
+
+        // Marcar como leído y actualizar
+        if (currentDiscussion.unread > 0) {
+             currentDiscussion.unread = 0;
+             // Actualizar el item en la lista principal visualmente
+             const discussionItemElement = DOM.discussionListContainer.querySelector(`.discussion-item[data-item-id="${id}"]`);
+             if (discussionItemElement) {
+                 discussionItemElement.dataset.unread = 'false';
+                 // Opcional: actualizar el meta text para quitar el contador de no leídos si se añadió
+                 // renderDiscussionList(); // Re-renderizar toda la lista para actualizar meta text
+             }
+             updateSidebarBadge(); // Actualizar badge de la barra lateral
+        }
+         clearReplyState(); // Asegurarse de que no estamos respondiendo al abrir
+         DOM.commentInput.focus(); // Poner el foco en el input de comentario
+    };
+
+    // Renderizado de comentarios (Adaptado al nuevo HTML y datos)
+    const renderComments = () => {
+        DOM.commentThreadContainer.innerHTML = '';
+        if (!currentDiscussion || !currentDiscussion.messages) return;
+
+        currentDiscussion.messages.forEach(msg => {
+            const c = DOM.tplComment.content.firstElementChild.cloneNode(true);
+
+            // Avatar
+            c.querySelector('.comment-avatar').dataset.initials = getInitials(msg.author);
+
+            // Header
+            c.querySelector('.comment-author').textContent = msg.author;
+            c.querySelector('.comment-timestamp').textContent = msg.time; // Usar el tiempo guardado
+
+            // Texto del comentario con menciones y manejo de saltos de línea
+            const textContentDiv = c.querySelector('.comment-text');
+            textContentDiv.innerHTML = ''; // Limpiar contenido previo
+            let formattedText = parseMentions(msg.text);
+
+             // Manejar respuestas simuladas
+             if (msg.replyTo) {
+                 const replyBlock = document.createElement('p');
+                 replyBlock.innerHTML = `<em>En respuesta a ${msg.replyTo}:</em>`;
+                 replyBlock.style.opacity = '0.7';
+                 replyBlock.style.fontSize = '0.85em';
+                 replyBlock.style.marginBottom = '0.3em';
+                 textContentDiv.appendChild(replyBlock);
+                 c.classList.add('is-reply'); // Añadir clase para indentación
+             }
+
+            // Dividir por saltos de línea y crear párrafos
+            formattedText.split('\n').forEach(paragraphText => {
+                if(paragraphText.trim()) {
+                    const p = document.createElement('p');
+                    p.innerHTML = paragraphText; // Usar innerHTML para mantener las menciones
+                    textContentDiv.appendChild(p);
+                }
+            });
+
+
+            // Adjuntos
+            const attachContainer = c.querySelector('.comment-attachments');
+            attachContainer.innerHTML = ''; // Limpiar contenido previo
+            if (msg.attachments && msg.attachments.length > 0) {
+                 msg.attachments.forEach(a => {
+                     if (a.type && a.type.startsWith('image/')) {
+                         const img = document.createElement('img');
+                         img.src = a.url;
+                         img.alt = 'Imagen adjunta';
+                         attachContainer.appendChild(img);
+                     } else {
+                         const link = document.createElement('a');
+                         link.href = a.url;
+                         link.textContent = a.name || 'Archivo adjunto';
+                         link.target = '_blank'; // Abrir en nueva pestaña
+                         link.innerHTML = `<i class="bi bi-file-earmark"></i> ${link.textContent}`; // Añadir icono
+                         attachContainer.appendChild(link);
+                     }
+                 });
+            } else {
+                 attachContainer.style.display = 'none'; // Ocultar si no hay adjuntos
+            }
+
+
+            // Likes (mantener funcionalidad simple)
+            const likeCountElement = c.querySelector('.like-count');
+            likeCountElement.textContent = msg.likes || 0;
+            const likeBtn = c.querySelector('.like-btn');
+            if (msg.likes > 0) likeBtn.classList.add('liked');
+
+            // Eventos (Reply y Like)
+            c.querySelector('.reply-link').addEventListener('click', e => {
+                e.preventDefault();
+                // Configurar estado de respuesta
+                replyToAuthor = msg.author;
+                DOM.replyingToName.textContent = replyToAuthor;
+                DOM.replyingToIndicator.style.display = 'block';
+                DOM.commentInput.placeholder = `Respondiendo a ${replyToAuthor}...`;
+                DOM.commentInput.focus();
+            });
+
+            likeBtn.addEventListener('click', e => {
+                // Simular toggle de like
+                const btn = e.currentTarget;
+                const cntElem = btn.querySelector('.like-count');
+                let count = Number(cntElem.textContent);
+                if (btn.classList.toggle('liked')) {
+                    count++;
+                    msg.likes++; // Actualizar dato
+                } else {
+                    count--;
+                    msg.likes--; // Actualizar dato
+                }
+                cntElem.textContent = count;
+            });
+
+            DOM.commentThreadContainer.append(c);
+        });
+
+         // Scroll al último comentario al abrir
+         DOM.commentThreadContainer.scrollTop = DOM.commentThreadContainer.scrollHeight;
+    };
+
+    // Actualizar badge de canal en la barra lateral
+    const updateChannelBadge = channel => {
+        const badge = DOM.badges[channel];
+        if (!badge) return;
+        // Calcular total de mensajes sin leer para este canal
+        const totalUnread = data[channel].reduce((sum, discussion) => sum + discussion.unread, 0);
+        badge.textContent = totalUnread;
+        badge.classList.toggle('visible', totalUnread > 0); // Mostrar si hay > 0
+    };
+
+     // Actualizar badge total en la barra lateral (si existe un badge general)
+     const updateSidebarBadge = () => {
+         // Si hay un badge general en la barra lateral (del prototipo viejo)
+         const mainSidebarBadge = document.getElementById('sidebar-notification-badge');
+         if (mainSidebarBadge) {
+             let totalUnreadAcrossChannels = 0;
+             for (const channel in data) {
+                 totalUnreadAcrossChannels += data[channel].reduce((sum, discussion) => sum + discussion.unread, 0);
+             }
+             mainSidebarBadge.textContent = totalUnreadAcrossChannels;
+             mainSidebarBadge.classList.toggle('visible', totalUnreadAcrossChannels > 0);
+         }
+
+         // Actualizar badges individuales por canal
+         for (const channel in data) {
+             updateChannelBadge(channel);
+         }
+     };
+
+
+    // Manejador de crear nuevo tema
+    const handleCreateTopic = () => {
+        const title = DOM.topicTitleInput.value.trim();
+        const content = DOM.topicContentInput.value.trim();
+         const type = DOM.topicTypeSelect.value; // Obtener tipo seleccionado
+
+        if (!title) {
+             showToast('El título no puede estar vacío');
+             return;
+        }
+
+        const newId = Date.now(); // ID simple basado en timestamp
+         const currentUser = DOM.userName.textContent; // Nombre del usuario actual
+         const currentTime = fmtTime(new Date()); // Tiempo actual formateado
+
+        const initialMessage = {
+            author: currentUser,
+            time: currentTime,
+            text: content || 'Tema creado sin contenido inicial.', // Contenido inicial opcional
+            attachments: [],
+            likes: 0
+        };
+
+        data[currentChannel].unshift({ // Añadir al principio para que aparezca arriba
+             id: newId,
+             title,
+             type, // Guardar el tipo
+             messages: [initialMessage],
+             unread: 0 // El creador no tiene mensajes sin leer inicialmente
+        });
+
+        toggleModal(DOM.newTopicModal, false);
+        DOM.topicTitleInput.value = '';
+        DOM.topicContentInput.value = '';
+         DOM.topicTypeSelect.value = 'discussion'; // Resetear selector
+        renderDiscussionList(); // Re-renderizar para mostrar el nuevo tema
+        showToast('Nuevo tema creado');
+    };
+
+    // Enviar comentario
+    const handleSendComment = () => {
+        const text = DOM.commentInput.value.trim();
+        const attachments = Array.from(DOM.attachInput.files).map(f => ({
+             type: f.type.startsWith('image/') ? 'image' : 'file',
+             name: f.name,
+             url: f.type.startsWith('image/') ? URL.createObjectURL(f) : '#' // URL temporal para imágenes, # para archivos
+         }));
+
+        if (!text && attachments.length === 0) {
+             showToast('El comentario no puede estar vacío');
+             return;
+        }
+
+         const currentUser = DOM.userName.textContent; // Nombre del usuario actual
+         const currentTime = fmtTime(new Date()); // Tiempo actual formateado
+
+        const newComment = {
+            author: currentUser,
+            time: currentTime,
+            text: text,
+            attachments: attachments,
+            likes: 0,
+            replyTo: replyToAuthor // Añadir a quién responde si aplica
+        };
+
+        if (currentDiscussion) {
+            currentDiscussion.messages.push(newComment);
+            // No marcamos como no leído para el propio usuario, pero en un sistema real,
+            // otros usuarios en el canal verían un mensaje nuevo.
+            // Podríamos simular esto incrementando 'unread' para otros usuarios,
+            // pero para esta simulación, solo actualizamos la vista local.
+
+            renderComments(); // Re-renderizar solo los comentarios
+             // Actualizar el meta text del item en la lista principal
+             const discussionItemElement = DOM.discussionListContainer.querySelector(`.discussion-item[data-item-id="${currentDiscussion.id}"]`);
+             if(discussionItemElement) {
+                  const meta = discussionItemElement.querySelector('.item-meta');
+                  if(meta) meta.textContent = `Último mensaje: Tú (${currentTime})`; // Mostrar "Tú" como autor
+                  // Opcional: mover el item al principio de la lista para destacar actividad reciente
+                  // DOM.discussionListContainer.prepend(discussionItemElement);
+             }
+
+        } else {
+             showToast('Error: No hay discusión activa para comentar.');
+        }
+
+        // Limpiar y resetear formulario
+        DOM.commentInput.value = '';
+        DOM.sendCommentBtn.disabled = true;
+        DOM.commentInput.style.height = 'auto'; // Resetear altura
+        DOM.attachInput.value = ''; // Limpiar input de archivo
+        DOM.attachPreview.innerHTML = ''; // Limpiar preview de adjuntos
+        clearReplyState(); // Resetear estado de respuesta
+
+        showToast('Comentario enviado');
+    };
+
+    // Adjuntos preview
+    DOM.attachBtn.addEventListener('click', () => DOM.attachInput.click());
+    DOM.attachInput.addEventListener('change', () => {
+        DOM.attachPreview.innerHTML = ''; // Limpiar preview anterior
+        Array.from(DOM.attachInput.files).forEach(f => {
+            if (f.type.startsWith('image/')) {
+                const img = document.createElement('img');
+                img.src = URL.createObjectURL(f);
+                 img.alt = f.name;
+                DOM.attachPreview.append(img);
+            } else {
+                const span = document.createElement('span');
+                span.textContent = f.name;
+                DOM.attachPreview.append(span);
+            }
+        });
+         // Habilitar botón de enviar si hay adjuntos, incluso si el texto está vacío
+         if (DOM.attachInput.files.length > 0 || DOM.commentInput.value.trim() !== '') {
+             DOM.sendCommentBtn.disabled = false;
+         } else {
+             DOM.sendCommentBtn.disabled = true;
+         }
+    });
+
+    // Manejo del input de comentario (auto-resize y habilitar/deshabilitar botón)
+    DOM.commentInput.addEventListener('input', () => {
+         // Habilitar botón si hay texto o adjuntos
+         DOM.sendCommentBtn.disabled = DOM.commentInput.value.trim() === '' && DOM.attachInput.files.length === 0;
+
+         // Auto-resize textarea
+         DOM.commentInput.style.height = 'auto';
+         DOM.commentInput.style.height = (DOM.commentInput.scrollHeight) + 'px';
+    });
+
+
+    // Mención parser
+    const parseMentions = txt => txt.replace(/@(\w+)/g, '<span class="mention">@$1</span>');
+
+    // Mostrar/ocultar modales y overlay de comentarios
+    const toggleModal = (modal, show) => {
+        modal.classList.toggle('visible', show);
+        // Añadir/quitar clase al body para el efecto de desenfoque solo para el overlay de comentarios
+        if (modal.id === 'comments-modal') {
+             DOM.body.classList.toggle('communication-open', show);
+        }
+    };
+
+    // Toast (mantener funcionalidad de comunicacion_mejorada)
+    const showToast = msg => {
+        const toast = document.createElement('div');
+        toast.className = 'toast align-items-center show';
+        toast.role = 'alert';
+        toast.innerHTML = `<div class="d-flex"><div class="toast-body">${msg}</div><button type="button" class="btn-close ms-auto me-2" data-bs-dismiss="toast" aria-label="Cerrar"></button></div>`;
+        DOM.toastContainer.append(toast);
+        // Usar Bootstrap's toast si se prefiere, pero este es simple y funciona
+        // new bootstrap.Toast(toast).show(); // Requiere que Bootstrap JS esté cargado
+
+        // Eliminar después de un tiempo
+        setTimeout(() => {
+             toast.classList.remove('show');
+             toast.addEventListener('transitionend', () => toast.remove());
+        }, 3000); // 3 segundos
+    };
+
+     // Funcionalidad de respuesta (del prototipo viejo)
+     const clearReplyState = () => {
+         replyToAuthor = null;
+         DOM.replyingToIndicator.style.display = 'none';
+         DOM.commentInput.placeholder = 'Escribe un comentario...';
+     };
+
+     if (DOM.cancelReplyBtn) {
+         DOM.cancelReplyBtn.addEventListener('click', clearReplyState);
+     }
+
+
+     // Simular Notificaciones en tiempo real (del prototipo viejo)
+     let notificationInterval;
+     const startNotificationSimulation = () => {
+         // Detener simulación anterior si existe
+         stopNotificationSimulation();
+
+         notificationInterval = setInterval(() => {
+             const discussions = data[currentChannel];
+             if (!discussions || discussions.length === 0) return;
+
+             // Encontrar una discusión que no esté abierta y no tenga mensajes sin leer
+             const availableDiscussions = discussions.filter(d => d.id !== (currentDiscussion ? currentDiscussion.id : null) && d.unread === 0);
+
+             if (availableDiscussions.length > 0) {
+                 const randomDiscussion = availableDiscussions[Math.floor(Math.random() * availableDiscussions.length)];
+
+                 // Simular recibir un nuevo mensaje
+                 const simulatedAuthors = ['Carlos R.', 'Laura M.', 'Javier S.', 'María'];
+                 const randomAuthor = simulatedAuthors[Math.floor(Math.random() * simulatedAuthors.length)];
+                 const simulatedMessage = {
+                     author: randomAuthor,
+                     time: fmtTime(new Date()), // Tiempo actual
+                     text: `Mensaje de simulación de ${randomAuthor} sobre "${randomDiscussion.title}".`,
+                     attachments: [],
+                     likes: 0
+                 };
+
+                 randomDiscussion.messages.push(simulatedMessage);
+                 randomDiscussion.unread++; // Incrementar contador de no leídos
+
+                 // Actualizar la lista visualmente para mostrar el indicador
+                 const discussionItemElement = DOM.discussionListContainer.querySelector(`.discussion-item[data-item-id="${randomDiscussion.id}"]`);
+                 if (discussionItemElement) {
+                     discussionItemElement.dataset.unread = 'true'; // Mostrar indicador
+                     // Opcional: actualizar el meta text
+                     const meta = discussionItemElement.querySelector('.item-meta');
+                     if(meta) meta.textContent = `Nuevo mensaje: ${randomAuthor} (Ahora)`;
+                     // Añadir highlight effect
+                     discussionItemElement.classList.add('new-message-highlight');
+                     setTimeout(() => { // Remove highlight after animation
+                          discussionItemElement.classList.remove('new-message-highlight');
+                     }, 1500);
+                 }
+
+                 updateSidebarBadge(); // Actualizar badges
+                 console.log(`Simulated new message for: ${randomDiscussion.title}`);
+             }
+
+         }, 8000); // Simular un nuevo mensaje cada 8 segundos
+     };
+
+     const stopNotificationSimulation = () => {
+         clearInterval(notificationInterval);
+     };
+
+
+    // Inicialización de eventos
+    const init = () => {
+        renderDiscussionList();
+        updateSidebarBadge(); // Cargar badges iniciales
+        startNotificationSimulation(); // Iniciar simulación de notificaciones
+
+        // Cambiar canal
+        DOM.nav.addEventListener('click', e => {
+            const link = e.target.closest('a[data-channel]');
+            if (!link) return;
+            e.preventDefault();
+            DOM.channelLinks.forEach(l => l.classList.remove('active'));
+            link.classList.add('active');
+            currentChannel = link.dataset.channel;
+            DOM.channelTitle.textContent = link.textContent.trim();
+            renderDiscussionList(); // Renderizar discusiones del nuevo canal
+            stopNotificationSimulation(); // Detener simulación para el canal anterior
+            startNotificationSimulation(); // Iniciar simulación para el nuevo canal
+        });
+
+        // Nuevo tema
+        DOM.newTopicBtn.addEventListener('click', () => toggleModal(DOM.newTopicModal, true));
+        DOM.createTopicBtn.addEventListener('click', handleCreateTopic);
+        DOM.cancelTopicBtns.forEach(btn => btn.addEventListener('click', () => toggleModal(DOM.newTopicModal, false)));
+
+        // Comentarios (Overlay)
+        DOM.closeCommentsBtn.addEventListener('click', () => toggleModal(DOM.commentsModal, false));
+        DOM.sendCommentBtn.addEventListener('click', handleSendComment);
+
+         // Cerrar modales con Escape
+         document.addEventListener('keydown', (event) => {
+             if (event.key === 'Escape') {
+                 if (DOM.newTopicModal.classList.contains('visible')) {
+                     toggleModal(DOM.newTopicModal, false);
+                 }
+                 if (DOM.commentsModal.classList.contains('visible')) {
+                     toggleModal(DOM.commentsModal, false);
+                 }
+             }
+         });
+
+         // Cerrar overlay de comentarios haciendo clic fuera
+         DOM.commentsModal.addEventListener('click', (event) => {
+             if (event.target === DOM.commentsModal) {
+                 toggleModal(DOM.commentsModal, false);
+             }
+         });
+
+    };
+
+    // Ejecutar inicialización cuando el DOM esté listo
+    document.addEventListener('DOMContentLoaded', init);
+
+    // Opcional: Detener/iniciar simulación al cambiar de pestaña (mejor para rendimiento)
+    // window.addEventListener('blur', stopNotificationSimulation);
+    // window.addEventListener('focus', startNotificationSimulation);
+
+
+})();
+</script>
+</body>
+</html>

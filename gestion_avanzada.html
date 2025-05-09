@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Gestión de Proyectos</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+    <style>
+        :root {
+            /* Colores (manteniendo el esquema) */
+            --main-bg-start: #cce3f9;
+            --main-bg-end: #b6d7f7;
+            --content-bg: #e9f1fa;
+            --sidebar-bg: #f8f9fa; /* Color claro para la nueva barra lateral */
+            --primary-blue: #1a73e8;
+            --text-dark: #2a2a2e;
+            --text-light: #ffffff;
+            --meta-text-color: #6c757d;
+            --editor-border: #dee2e6; /* Útil para bordes de formulario/lista */
+            --log-item-border: #e9ecef;
+            --log-item-hover: #f1f3f4;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--main-bg-start), var(--main-bg-end));
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            font-size: 14px;
+            color: var(--text-dark);
+        }
+
+        .app-container {
+            display: flex;
+            width: 100%;
+            max-width: 1200px; /* Aumentado para acomodar la barra lateral y el historial */
+            min-height: 700px; /* Aumentado */
+            background-color: var(--content-bg);
+            border-radius: var(--border-radius-main);
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Área Principal */
+        .main-content {
+            flex-grow: 1;
+            padding: 35px 45px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto; /* Permitir scroll si el contenido es largo */
+        }
+
+        .main-header {
+            margin-bottom: 35px;
+            text-align: center;
+        }
+
+        .main-header h1 {
+            font-size: 2.1rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        /* Sección de Búsqueda Global */
+        .global-search {
+            margin-bottom: 30px;
+        }
+
+        .global-search .form-control {
+            border-radius: 50px; /* Bordes redondeados para el buscador */
+            padding: 10px 20px;
+            font-size: 1rem;
+        }
+
+        /* Formulario de Creación */
+        #create-project-form {
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--editor-border);
+        }
+
+        #create-project-form .form-label {
+            font-weight: 500;
+            margin-bottom: 0.3rem;
+            font-size: 0.9rem;
+        }
+
+        #create-project-form .form-control {
+            border-radius: var(--border-radius-inner);
+            font-size: 0.95rem;
+            border: 1px solid var(--editor-border);
+        }
+        #create-project-form .form-control:focus {
+             border-color: var(--primary-blue);
+             box-shadow: 0 0 0 0.2rem rgba(26, 115, 232, 0.25);
+        }
+        /* Estilo para campos inválidos (añadido por JS) */
+        #create-project-form .form-control.is-invalid {
+            border-color: #dc3545;
+        }
+        #create-project-form .invalid-feedback {
+            font-size: 0.8rem;
+        }
+
+        .btn-create-project {
+            background-color: var(--primary-blue);
+            border-color: var(--primary-blue);
+            color: var(--text-light);
+            border-radius: 50px;
+            padding: 10px 30px;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: background-color 0.2s ease, border-color 0.2s ease;
+            width: 100%;
+            margin-top: 15px;
+        }
+        .btn-create-project:hover, .btn-create-project:focus {
+             background-color: #1565c0; border-color: #1565c0; color: var(--text-light); box-shadow: none;
+        }
+
+        /* Lista de Proyectos */
+        #project-list-container {
+            margin-bottom: 40px; /* Espacio antes del historial */
+        }
+
+        #project-list-container h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--editor-border);
+            padding-bottom: 10px;
+        }
+
+        .list-group-item {
+            background-color: #fff; /* Fondo blanco para items */
+            border: 1px solid var(--editor-border);
+            margin-bottom: 10px;
+            border-radius: var(--border-radius-inner) !important; /* Sobrescribir radio de Bootstrap */
+            padding: 15px 20px;
+        }
+
+        .list-group-item h5 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--primary-blue);
+            margin-bottom: 5px;
+        }
+
+        .list-group-item p {
+            font-size: 0.9rem;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+        .list-group-item small {
+            font-size: 0.8rem;
+            color: var(--meta-text-color);
+            display: block;
+        }
+
+        #no-projects-message {
+            color: var(--meta-text-color);
+            font-style: italic;
+            text-align: center;
+            padding: 20px;
+        }
+
+        /* Sección de Historial */
+        #project-history-container h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--editor-border);
+            padding-bottom: 10px;
+        }
+
+        .history-item {
+            background-color: #fff;
+            border: 1px solid var(--editor-border);
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: var(--border-radius-inner);
+        }
+
+        .history-item strong {
+            color: var(--primary-blue);
+        }
+
+        .history-item small {
+            color: var(--meta-text-color);
+            display: block;
+            margin-top: 5px;
+        }
+
+        /* Mensaje de no resultados para búsqueda */
+        #no-search-results-message {
+            color: var(--meta-text-color);
+            font-style: italic;
+            text-align: center;
+            padding: 20px;
+            display: none; /* Oculto por defecto */
+        }
+
+
+        /* Barra Lateral (Log de Actividad) */
+        .sidebar {
+            width: 300px; /* Ancho de la barra lateral */
+            background-color: var(--sidebar-bg);
+            padding: 20px;
+            border-left: 1px solid var(--editor-border);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto; /* Permitir scroll en el log */
+        }
+
+        .sidebar h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--editor-border);
+        }
+
+        .activity-log-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .activity-log-item {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px dashed var(--log-item-border);
+            font-size: 0.9rem;
+        }
+
+        .activity-log-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .activity-log-item strong {
+            color: var(--primary-blue);
+        }
+
+        .activity-log-item small {
+            display: block;
+            color: var(--meta-text-color);
+            margin-top: 3px;
+            font-size: 0.8rem;
+        }
+
+
+        /* Media Queries para Responsividad */
+        @media (max-width: 992px) {
+            .app-container {
+                flex-direction: column; /* Apilar elementos en pantallas pequeñas */
+                max-width: 95%;
+                min-height: auto;
+            }
+
+            .main-content {
+                padding: 20px;
+            }
+
+            .sidebar {
+                width: 100%; /* Barra lateral ocupa todo el ancho */
+                border-left: none;
+                border-top: 1px solid var(--editor-border);
+                padding: 20px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            body {
+                padding: 1rem;
+            }
+
+            .main-content {
+                padding: 15px;
+            }
+
+            .main-header h1 {
+                font-size: 1.8rem;
+            }
+
+            .global-search .form-control {
+                font-size: 0.9rem;
+            }
+
+            .btn-create-project {
+                font-size: 0.95rem;
+                padding: 10px 20px;
+            }
+
+            .list-group-item, .history-item {
+                padding: 12px 15px;
+            }
+
+            .list-group-item h5 {
+                font-size: 1rem;
+            }
+
+            .list-group-item p {
+                font-size: 0.85rem;
+            }
+
+            .sidebar h3 {
+                font-size: 1.2rem;
+            }
+
+            .activity-log-item {
+                font-size: 0.85rem;
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <main class="main-content">
+            <header class="main-header">
+                <h1>Panel de Gestión de Proyectos</h1>
+            </header>
+
+            <section class="global-search">
+                <div class="input-group mb-3">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control border-start-0" id="globalSearchInput" placeholder="Buscar tareas, documentos, usuarios...">
+                </div>
+                 <p id="no-search-results-message" class="text-center text-muted fst-italic">No se encontraron resultados para la búsqueda.</p>
+            </section>
+
+            <section id="create-project-section">
+                 <h2>Crear Nuevo Proyecto</h2>
+                <form id="create-project-form" novalidate>
+                    <div class="mb-3">
+                        <label for="projectName" class="form-label">Nombre del Proyecto <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="projectName" placeholder="Ej: Informe Trimestral Q4" required>
+                        <div class="invalid-feedback">
+                            Por favor, introduce un nombre para el proyecto.
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="projectDescription" class="form-label">Descripción</label>
+                        <textarea class="form-control" id="projectDescription" rows="3" placeholder="Añade una breve descripción del objetivo del proyecto..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="projectDueDate" class="form-label">Fecha Límite <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="projectDueDate" required>
+                         <div class="invalid-feedback">
+                            Por favor, selecciona una fecha límite.
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-create-project">
+                        <i class="bi bi-plus-lg me-2"></i> Crear Proyecto
+                    </button>
+                </form>
+            </section>
+
+
+            <section id="project-list-container">
+                <h2>Mis Proyectos</h2>
+                <ul class="list-group" id="project-list">
+                    <li id="no-projects-message" class="list-group-item text-center text-muted">Aún no has creado ningún proyecto.</li>
+                </ul>
+            </section>
+
+            <section id="project-history-container">
+                <h2>Historial de Actividad</h2>
+                <div id="history-list">
+                    </div>
+            </section>
+
+        </main>
+
+        <aside class="sidebar">
+             <h3>Actividad Reciente</h3>
+             <ul class="activity-log-list" id="activity-log">
+                </ul>
+        </aside>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const projectForm = document.getElementById('create-project-form');
+            const projectNameInput = document.getElementById('projectName');
+            const projectDescriptionInput = document.getElementById('projectDescription');
+            const projectDueDateInput = document.getElementById('projectDueDate');
+            const projectList = document.getElementById('project-list');
+            const noProjectsMessage = document.getElementById('no-projects-message');
+            const globalSearchInput = document.getElementById('globalSearchInput');
+            const activityLog = document.getElementById('activity-log');
+            const historyList = document.getElementById('history-list');
+            const noSearchResultsMessage = document.getElementById('no-search-results-message'); // Nuevo: mensaje de no resultados
+
+            // --- Simulación de datos (reemplazar con datos reales en una aplicación real) ---
+            let projects = [
+                { name: 'Informe Trimestral Q4', description: 'Preparación del informe de resultados del cuarto trimestre.', dueDate: '2024-12-31' },
+                { name: 'Lanzamiento Web v2.0', description: 'Desarrollo y despliegue de la nueva versión del sitio web.', dueDate: '2025-03-15' },
+                { name: 'Campaña Marketing Verano', description: 'Planificación y ejecución de la campaña publicitaria de verano.', dueDate: '2024-06-01' },
+                { name: 'Análisis de Mercado 2025', description: 'Investigación y análisis de las tendencias del mercado para el próximo año.', dueDate: '2024-11-20' }
+            ]; // Array para almacenar proyectos
+            let activityLogData = [ // Datos simulados del log
+                 { user: 'Usuario 3', action: 'añadió una tarea a "Lanzamiento Web v2.0"', time: 'Hace 5 minutos' },
+                 { user: 'Usuario 1', action: 'subió el documento "Presupuesto Q4.xlsx"', time: 'Hace 15 minutos' },
+                 { user: 'Usuario 2', action: 'comentó en la tarea "Diseño de interfaz" del proyecto "Lanzamiento Web v2.0"', time: 'Hace 30 minutos' },
+                 { user: 'Usuario 3', action: 'creó el proyecto "Campaña Marketing Verano"', time: 'Hace 1 hora' },
+                 { user: 'Usuario 1', action: 'completó la tarea "Recopilar datos" en "Informe Trimestral Q4"', time: 'Hace 2 horas' },
+                 { user: 'Usuario 4', action: 'se unió al proyecto "Análisis de Mercado 2025"', time: 'Hace 3 horas' }
+            ];
+             let historyData = [ // Datos simulados del historial
+                { user: 'Usuario 1', action: 'creó la tarea "Configurar entorno" en "Lanzamiento Web v2.0"', date: '2024-10-26 10:00' },
+                 { user: 'Usuario 2', action: 'subió el documento "Requisitos iniciales.pdf" al proyecto "Lanzamiento Web v2.0"', date: '2024-10-26 11:30' },
+                 { user: 'Usuario 1', action: 'completó la tarea "Configurar entorno" en "Lanzamiento Web v2.0"', date: '2024-10-27 09:00' },
+                 { user: 'Usuario 3', action: 'comentó en la tarea "Diseño de interfaz" del proyecto "Lanzamiento Web v2.0"', date: '2024-10-27 14:00' },
+                 { user: 'Usuario 3', action: 'creó el proyecto "Campaña Marketing Verano"', date: '2024-10-28 09:30' },
+                 { user: 'Usuario 1', action: 'subió el documento "Informe Preliminar.docx" al proyecto "Informe Trimestral Q4"', date: '2024-10-28 11:00' },
+                 { user: 'Usuario 4', action: 'creó la tarea "Investigación de competidores" en "Análisis de Mercado 2025"', date: '2024-10-29 10:00' }
+            ];
+
+
+            // --- Funciones de Renderizado ---
+
+            // Renderizar la lista de proyectos (filtrada)
+            function renderProjects(filteredProjects) {
+                projectList.innerHTML = ''; // Limpiar lista actual
+                const projectsToRender = filteredProjects || projects; // Usar lista filtrada si se proporciona
+
+                if (projectsToRender.length === 0) {
+                    noProjectsMessage.style.display = 'block';
+                } else {
+                    noProjectsMessage.style.display = 'none';
+                    projectsToRender.forEach(project => {
+                        const listItem = document.createElement('li');
+                        listItem.classList.add('list-group-item');
+                        const formattedDate = new Date(project.dueDate + 'T00:00:00').toLocaleDateString('es-ES', {
+                            year: 'numeric', month: 'long', day: 'numeric'
+                        });
+                        listItem.innerHTML = `
+                            <h5>${escapeHTML(project.name)}</h5>
+                            ${project.description ? `<p>${escapeHTML(project.description)}</p>` : ''}
+                            <small>Fecha Límite: ${formattedDate}</small>
+                        `;
+                        projectList.appendChild(listItem);
+                    });
+                }
+            }
+
+            // Renderizar el log de actividad (filtrado)
+            function renderActivityLog(filteredLog) {
+                activityLog.innerHTML = ''; // Limpiar log actual
+                const logToRender = filteredLog || activityLogData; // Usar lista filtrada si se proporciona
+
+                if (logToRender.length === 0) {
+                     // No hay mensaje específico para el log vacío en la barra lateral, simplemente no se muestran items
+                } else {
+                    logToRender.forEach(item => {
+                        const listItem = document.createElement('li');
+                        listItem.classList.add('activity-log-item');
+                        listItem.innerHTML = `
+                            <strong>${escapeHTML(item.user)}</strong> ${escapeHTML(item.action)}.
+                            <small>${escapeHTML(item.time)}</small>
+                        `;
+                        activityLog.appendChild(listItem);
+                    });
+                }
+            }
+
+             // Renderizar el historial (filtrado)
+            function renderHistory(filteredHistory) {
+                historyList.innerHTML = ''; // Limpiar historial actual
+                const historyToRender = filteredHistory || historyData; // Usar lista filtrada si se proporciona
+
+                if (historyToRender.length === 0) {
+                     historyList.innerHTML = '<p class="text-center text-muted fst-italic">No hay actividad reciente en el historial.</p>';
+                 } else {
+                    // Opcional: Agrupar por fecha antes de renderizar si se desea esa organización visual
+                    const groupedHistory = historyToRender.reduce((acc, item) => {
+                        const date = item.date.split(' ')[0]; // Obtener solo la fecha
+                        if (!acc[date]) {
+                            acc[date] = [];
+                        }
+                        acc[date].push(item);
+                        return acc;
+                    }, {});
+
+                    for (const date in groupedHistory) {
+                        const dateHeader = document.createElement('h5'); // Usar h5 para la fecha de grupo
+                        dateHeader.textContent = new Date(date + 'T00:00:00').toLocaleDateString('es-ES', {
+                             year: 'numeric', month: 'long', day: 'numeric'
+                        });
+                        dateHeader.classList.add('mt-3', 'mb-2', 'pb-1', 'border-bottom', 'border-secondary-subtle'); // Clases para estilo
+                        historyList.appendChild(dateHeader);
+
+                        groupedHistory[date].forEach(item => {
+                            const historyItem = document.createElement('div');
+                            historyItem.classList.add('history-item');
+                            historyItem.innerHTML = `
+                                <strong>${escapeHTML(item.user)}</strong> ${escapeHTML(item.action)}.
+                                <small>Fecha: ${escapeHTML(item.date)}</small>
+                            `;
+                            historyList.appendChild(historyItem);
+                        });
+                    }
+                 }
+            }
+
+
+            // --- Event Listeners ---
+
+            // Evento para el formulario de creación de proyecto
+            projectForm.addEventListener('submit', (event) => {
+                event.preventDefault(); // Prevenir envío normal del formulario
+
+                // --- Validación ---
+                let isValid = true;
+
+                // Limpiar validación previa
+                projectNameInput.classList.remove('is-invalid');
+                projectDueDateInput.classList.remove('is-invalid');
+
+                // Validar Nombre (requerido)
+                if (!projectNameInput.value.trim()) {
+                    projectNameInput.classList.add('is-invalid');
+                    isValid = false;
+                }
+
+                // Validar Fecha Límite (requerido)
+                if (!projectDueDateInput.value) {
+                    projectDueDateInput.classList.add('is-invalid');
+                    isValid = false;
+                }
+
+                if (!isValid) {
+                    return; // Detener si hay errores
+                }
+
+                // --- Si es válido, crear y añadir proyecto ---
+                const name = projectNameInput.value.trim();
+                const description = projectDescriptionInput.value.trim();
+                const dueDate = projectDueDateInput.value;
+
+                const newProject = { name, description, dueDate };
+                projects.push(newProject); // Añadir a la simulación de datos
+
+                // Simular una entrada en el log y el historial
+                const now = new Date();
+                const logTime = 'Ahora mismo'; // Simplificado para la simulación
+                const historyDate = now.toISOString().slice(0, 16).replace('T', ' '); // Formato YYYY-MM-DD HH:MM
+                activityLogData.unshift({ user: 'Tú', action: `creaste el proyecto "${name}"`, time: logTime }); // Añadir al principio
+                historyData.unshift({ user: 'Tú', action: `creó el proyecto "${name}"`, date: historyDate }); // Añadir al principio
+
+                // Volver a renderizar todo (puede ser optimizado para solo añadir el nuevo item)
+                renderProjects();
+                renderActivityLog();
+                renderHistory();
+
+
+                // Limpiar el formulario
+                projectForm.reset();
+            });
+
+            // Evento para el buscador global (filtrado)
+            globalSearchInput.addEventListener('input', (event) => {
+                const searchTerm = event.target.value.toLowerCase();
+
+                // Filtrar proyectos
+                const filteredProjects = projects.filter(project =>
+                    project.name.toLowerCase().includes(searchTerm) ||
+                    project.description.toLowerCase().includes(searchTerm)
+                );
+                renderProjects(filteredProjects); // Renderizar con proyectos filtrados
+
+                // Filtrar log de actividad
+                const filteredActivityLog = activityLogData.filter(item =>
+                    item.user.toLowerCase().includes(searchTerm) ||
+                    item.action.toLowerCase().includes(searchTerm) ||
+                    item.time.toLowerCase().includes(searchTerm)
+                );
+                renderActivityLog(filteredActivityLog); // Renderizar con log filtrado
+
+                // Filtrar historial
+                const filteredHistory = historyData.filter(item =>
+                    item.user.toLowerCase().includes(searchTerm) ||
+                    item.action.toLowerCase().includes(searchTerm) ||
+                    item.date.toLowerCase().includes(searchTerm)
+                );
+                renderHistory(filteredHistory); // Renderizar con historial filtrado
+
+                // Mostrar/ocultar mensaje de no resultados
+                if (searchTerm && filteredProjects.length === 0 && filteredActivityLog.length === 0 && filteredHistory.length === 0) {
+                    noSearchResultsMessage.style.display = 'block';
+                } else {
+                    noSearchResultsMessage.style.display = 'none';
+                }
+
+                 // Asegurarse de que el mensaje "no hay proyectos" original se maneje correctamente cuando no hay búsqueda
+                 if (!searchTerm && projects.length === 0) {
+                     noProjectsMessage.style.display = 'block';
+                     noProjectsMessage.textContent = 'Aún no has creado ningún proyecto.';
+                 } else if (!searchTerm && projects.length > 0) {
+                      noProjectsMessage.style.display = 'none';
+                 }
+            });
+
+
+            // --- Funciones de Utilidad ---
+
+            // Función simple para escapar HTML y prevenir XSS básico
+            function escapeHTML(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            // --- Inicialización ---
+            renderProjects(); // Renderizar proyectos al cargar la página
+            renderActivityLog(); // Renderizar log al cargar la página
+            renderHistory(); // Renderizar historial al cargar la página
+
+        });
+    </script>
+
+</body>
+</html>

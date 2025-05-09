@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iColab - Autenticación</title>
+
+    <!-- Google Font: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+
+    <style>
+        :root {
+            --main-bg-start: #cce3f9;
+            --main-bg-end: #b6d7f7;
+            --login-box-bg: #ffffff;
+            --primary-blue: #1a73e8;
+            --text-dark: #2a2a2e;
+            --text-light: #ffffff;
+            --input-border: #dee2e6;
+            --input-focus-border: #86b7fe;
+            --error-color: #dc3545;
+            --border-radius-main: 16px;
+            --border-radius-inner: 10px;
+        }
+        body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, var(--main-bg-start), var(--main-bg-end)); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem; color: var(--text-dark); }
+        .login-container { background-color: var(--login-box-bg); border-radius: var(--border-radius-main); padding: 45px 50px; width: 100%; max-width: 420px; box-shadow: 0 8px 30px rgba(0,0,0,0.12); text-align: center; position: relative; }
+        .login-container h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 15px; }
+        .platform-name { font-size: 2.2rem; font-weight: 700; color: var(--primary-blue); margin-bottom: 35px; display: block; }
+        .form-label { font-weight: 500; margin-bottom: .5rem; font-size: .9rem; }
+        .form-control { border-radius: var(--border-radius-inner); padding: 12px 15px; font-size: .95rem; border: 1px solid var(--input-border); transition: .15s; }
+        .form-control:focus { border-color: var(--input-focus-border); box-shadow: 0 0 0 .25rem rgba(26,115,232, .25); }
+        .btn-login { background-color: var(--primary-blue); border-color: var(--primary-blue); color: var(--text-light); border-radius: 50px; padding: 12px 28px; font-size: 1rem; font-weight: 500; width: 100%; margin-top: 25px; transition: .2s; }
+        .btn-login:hover, .btn-login:focus { background-color: #1565c0; border-color: #1565c0; box-shadow: none; }
+        .error-message { color: var(--error-color); font-size: .85rem; margin-top: 15px; text-align: center; display: none; min-height: 1.5em; }
+        .error-message.show { display: block; }
+        .form-text { text-align: center; margin-top: 20px; font-size: .85rem; }
+        .form-text a { color: var(--primary-blue); text-decoration: none; }
+        .form-text a:hover { text-decoration: underline; }
+
+        /* Modal Registro */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-content { background: #fff; border-radius: var(--border-radius-inner); width: 90%; max-width: 500px; padding: 2rem; position: relative; box-shadow: 0 8px 30px rgba(0,0,0,0.2); }
+        .modal-content h2 { margin-bottom: 1rem; font-weight: 700; }
+        .close-btn { position: absolute; top: .5rem; right: .75rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #888; }
+    </style>
+</head>
+<body>
+<div class="login-container">
+    <span class="platform-name">iColab</span>
+    <h1>Iniciar Sesión</h1>
+    <form id="login-form" novalidate>
+        <div class="mb-3 text-start">
+            <label for="email" class="form-label">Correo Corporativo</label>
+            <input type="email" class="form-control" id="email" placeholder="ejemplo@tuempresa.com" required>
+        </div>
+        <div class="mb-3 text-start">
+            <label for="password" class="form-label">Contraseña</label>
+            <input type="password" class="form-control" id="password" placeholder="Introduce tu contraseña" required>
+        </div>
+        <div id="error-message" class="error-message"></div>
+        <button type="submit" class="btn btn-login">Ingresar</button>
+        <div class="mt-3 text-center form-text">
+            <a href="#" class="link-secondary">¿Olvidaste tu contraseña?</a>
+        </div>
+        <div class="mt-2 text-center form-text">
+            ¿No tienes cuenta? <a href="#" id="show-register">Regístrate</a>
+        </div>
+    </form>
+</div>
+
+<!-- Modal Registro -->
+<div class="modal-overlay" id="modal-register">
+    <div class="modal-content">
+        <button class="close-btn" id="close-register">&times;</button>
+        <h2>Registro</h2>
+        <form id="register-form" novalidate>
+            <div class="mb-3 text-start">
+                <label class="form-label" for="reg-name">Nombre Completo</label>
+                <input type="text" id="reg-name" class="form-control" placeholder="Tu nombre completo" required>
+            </div>
+            <div class="mb-3 text-start">
+                <label class="form-label" for="reg-email">Correo Corporativo</label>
+                <input type="email" id="reg-email" class="form-control" placeholder="ejemplo@tuempresa.com" required>
+            </div>
+            <div class="mb-3 text-start">
+                <label class="form-label" for="reg-password">Contraseña</label>
+                <input type="password" id="reg-password" class="form-control" placeholder="Crear contraseña fuerte" required>
+            </div>
+            <div class="mb-3 text-start">
+                <label class="form-label" for="reg-confirm">Confirmar Contraseña</label>
+                <input type="password" id="reg-confirm" class="form-control" placeholder="Repite tu contraseña" required>
+            </div>
+            <div id="reg-error" class="error-message"></div>
+            <button type="submit" class="btn btn-login">Crear Cuenta</button>
+        </form>
+    </div>
+</div>
+
+<!-- Bootstrap JS Bundle -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const loginForm = document.getElementById('login-form');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const errorMessageDiv = document.getElementById('error-message');
+        const showRegBtn = document.getElementById('show-register');
+        const modal = document.getElementById('modal-register');
+        const closeRegBtn = document.getElementById('close-register');
+        const regForm = document.getElementById('register-form');
+        const regName = document.getElementById('reg-name');
+        const regEmail = document.getElementById('reg-email');
+        const regPassword = document.getElementById('reg-password');
+        const regConfirm = document.getElementById('reg-confirm');
+        const regError = document.getElementById('reg-error');
+
+        // Sesión persistente simulada
+        if (localStorage.getItem('isLoggedIn') === 'true') {
+            alert(`Bienvenido de nuevo, ${localStorage.getItem('userEmail')}!`);
+        }
+
+        // Mostrar modal registro
+        showRegBtn.addEventListener('click', (e) => {
+            e.preventDefault(); modal.style.display = 'flex';
+        });
+        // Cerrar modal
+        closeRegBtn.addEventListener('click', () => { modal.style.display = 'none'; regError.classList.remove('show'); regError.textContent = ''; regForm.reset(); });
+        // Cerrar al clicar fuera
+        modal.addEventListener('click', e => { if (e.target === modal) closeRegBtn.click(); });
+
+        // Validación email básica
+        function validarEmail(email) {
+            const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[A-Za-z]{2,}$/;
+            return re.test(email.toLowerCase());
+        }
+        // Validación contraseña fuerte
+        function validarPassword(pwd) {
+            return /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#\$%\^&\*]).{8,}$/.test(pwd);
+        }
+
+        // Registro simulado
+        regForm.addEventListener('submit', (e) => {
+            e.preventDefault(); regError.classList.remove('show'); regError.textContent = '';
+            if (!regName.value.trim() || !regEmail.value.trim() || !regPassword.value || !regConfirm.value) {
+                regError.textContent = 'Por favor, completa todos los campos.'; regError.classList.add('show'); return;
+            }
+            if (!validarEmail(regEmail.value)) { regError.textContent = 'Correo inválido.'; regError.classList.add('show'); return; }
+            if (!validarPassword(regPassword.value)) { regError.textContent = 'La contraseña debe tener ≥8 caracteres, mayúscula, número y símbolo.'; regError.classList.add('show'); return; }
+            if (regPassword.value !== regConfirm.value) { regError.textContent = 'Las contraseñas no coinciden.'; regError.classList.add('show'); return; }
+            // Simular envío de correo de confirmación
+            setTimeout(() => {
+                alert(`Correo de confirmación enviado a ${regEmail.value}. Revisa tu bandeja.`);
+                localStorage.setItem('registeredUser', regEmail.value);
+                modal.style.display = 'none'; regForm.reset();
+            }, 500);
+        });
+
+        // Login simulado
+        loginForm.addEventListener('submit', (event) => {
+            event.preventDefault(); errorMessageDiv.classList.remove('show'); errorMessageDiv.textContent = '';
+            const email = emailInput.value.trim(); const pwd = passwordInput.value;
+            if (!email || !pwd) { errorMessageDiv.textContent = 'Por favor, complete ambos campos.'; errorMessageDiv.classList.add('show'); return; }
+            if (!validarEmail(email)) { errorMessageDiv.textContent = 'Formato de correo inválido.'; errorMessageDiv.classList.add('show'); return; }
+            const validEmail = localStorage.getItem('registeredUser') || 'test@corp.com';
+            const validPwd = 'password123';
+            setTimeout(() => {
+                if (email === validEmail && pwd === validPwd) {
+                    localStorage.setItem('isLoggedIn', 'true'); localStorage.setItem('userEmail', email);
+                    alert('Inicio de sesión exitoso. Sesión guardada.'); location.reload();
+                } else if (email === validEmail && pwd !== validPwd) {
+                    errorMessageDiv.textContent = 'Contraseña incorrecta.'; errorMessageDiv.classList.add('show'); passwordInput.focus();
+                } else {
+                    errorMessageDiv.textContent = 'Usuario no registrado.'; errorMessageDiv.classList.add('show'); emailInput.focus();
+                }
+            }, 500);
+        });
+    });
+</script>
+</body>
+</html>
